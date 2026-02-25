@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrderTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy:        #0a1628;
+    --navy-mid:    #112240;
+    --navy-light:  #1a3a6b;
+    --navy-muted:  #2d5499;
+    --gold:        #c9a84c;
+    --gold-light:  #f5e9c8;
+    --gold-pale:   #fdf8ee;
+    --white:       #ffffff;
+    --off-white:   #f8f9fc;
+    --border:      #dce3f0;
+    --border-mid:  #b8c6e0;
+    --text:        #0a1628;
+    --text-mid:    #3a5080;
+    --text-muted:  #7a90b8;
+    --red:         #c0392b;
+    --red-light:   #fdf0ee;
+    --green:       #1a6b3a;
+    --green-light: #e8f4ee;
+    --amber:       #b7791f;
+    --amber-light: #fef9ec;
+    --indigo:      #3730a3;
+    --indigo-light:#eef2ff;
+    --sans:  'IBM Plex Sans', sans-serif;
+    --mono:  'IBM Plex Mono', monospace;
+    --display: 'Playfair Display', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--off-white); font-family: var(--sans); color: var(--text); min-height: 100vh; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--navy);
+    border-bottom: 3px solid var(--gold);
+    padding: 0 40px;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 24px rgba(10,22,40,0.18);
+  }
+  .logo {
+    font-family: var(--display); font-size: 20px; font-weight: 700;
+    color: var(--white); letter-spacing: 0.02em;
+  }
+  .logo span { color: var(--gold); }
+  .header-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    background: rgba(255,255,255,0.06); padding: 4px 12px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.04em;
+  }
+
+  main { max-width: 1300px; margin: 0 auto; padding: 32px 40px; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .stat {
+    flex: 1; min-width: 120px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px;
+    border-top: 3px solid var(--navy-light);
+    box-shadow: 0 2px 8px rgba(10,22,40,0.06);
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+  .stat:hover { box-shadow: 0 4px 16px rgba(10,22,40,0.1); }
+  .stat-val   { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--navy); }
+  .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; font-weight: 500; }
+  .stat-btn   { cursor: pointer; user-select: none; }
+  .stat-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(10,22,40,0.12); }
+  .stat-warn  { border-top-color: var(--amber); }
+  .stat-warn .stat-val   { color: var(--amber); }
+  .stat-warn .stat-label { color: var(--amber); }
+  .stat-info  { border-top-color: var(--indigo); }
+  .stat-info .stat-val   { color: var(--indigo); }
+  .stat-info .stat-label { color: var(--indigo); }
+  .stat-warn.active-filter { background: var(--amber-light); outline: 2px solid var(--amber); outline-offset: -2px; }
+  .stat-info.active-filter { background: var(--indigo-light); outline: 2px solid var(--indigo); outline-offset: -2px; }
+  .stat-btn .stat-label, .stat-btn .stat-val { pointer-events: none; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    padding: 9px 18px; border-radius: 5px; border: 1px solid transparent;
+    cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: 0.02em;
+  }
+  .btn-primary { background: var(--navy); color: var(--white); border-color: var(--navy); }
+  .btn-primary:hover { background: var(--navy-light); border-color: var(--navy-light); }
+  .btn-gold { background: var(--gold); color: var(--navy); border-color: var(--gold); font-weight: 600; }
+  .btn-gold:hover { background: #b8903a; border-color: #b8903a; }
+  .btn-ghost { background: var(--white); color: var(--text-mid); border-color: var(--border); }
+  .btn-ghost:hover { border-color: var(--navy-muted); color: var(--navy); background: var(--off-white); }
+
+  .search-box { flex: 1; max-width: 280px; }
+  .search-box input {
+    width: 100%; padding: 9px 14px; border: 1px solid var(--border); border-radius: 5px;
+    font-family: var(--sans); font-size: 13px; background: var(--white); color: var(--text); outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search-box input:focus { border-color: var(--navy-muted); box-shadow: 0 0 0 3px rgba(26,58,107,0.1); }
+  .search-icon { display: none; }
+
+  .date-range-filter {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white); border: 1px solid var(--border); border-radius: 5px; padding: 6px 14px;
+  }
+  .date-range-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); white-space: nowrap; font-weight: 500; }
+  .date-range-filter input[type="date"] { border: none; background: transparent; font-size: 12px; font-family: var(--mono); color: var(--text); outline: none; padding: 0; width: 120px; }
+  .date-range-sep { color: var(--text-muted); font-size: 13px; }
+  .btn-clear-range { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 3px; display: none; }
+  .btn-clear-range:hover { background: var(--red-light); color: var(--red); }
+  .btn-clear-range.visible { display: inline-flex; }
+  .date-range-filter.active { border-color: var(--navy-muted); background: #eef3fc; }
+  .date-range-filter.active .date-range-label { color: var(--navy); }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--white); border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(10,22,40,0.07);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--navy); }
+  th {
+    padding: 12px 16px; text-align: left;
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.09em; color: rgba(255,255,255,0.6); font-weight: 400;
+    border-bottom: none;
+  }
+  th:first-child { border-radius: 0; }
+  td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr.order-row { cursor: pointer; transition: background 0.1s; }
+  tr.order-row:hover td { background: #f0f4fc; }
+  tr.order-row.selected td { background: #e8f0fb; }
+  tr.order-row.selected:hover td { background: #dce8f8; }
+  tr.order-row.completed td { background: #edf7f2; }
+  tr.order-row.completed:hover td { background: #e0f2e9; }
+
+  .order-num { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--navy-light); }
+  .test-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .test-chip {
+    font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 3px;
+    background: var(--off-white); border: 1px solid var(--border); color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .test-chip.pass { background: var(--green-light); border-color: transparent; color: var(--green); }
+  .test-chip.fail { background: var(--red-light); border-color: transparent; color: var(--red); }
+
+  .action-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 14px; padding: 4px 7px; border-radius: 4px; transition: all 0.1s; }
+  .action-btn:hover { background: var(--border); color: var(--navy); }
+  .action-btn.del:hover { background: var(--red-light); color: var(--red); }
+
+  .empty { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 14px; }
+  .empty p { font-size: 14px; }
+
+  /* ── OVERLAY & MODAL ── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(10,22,40,0.5); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 10px; width: 580px; max-width: 96vw;
+    max-height: 92vh; overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(10,22,40,0.22);
+    animation: slideUp 0.18s ease;
+    border-top: 4px solid var(--navy);
+  }
+  .modal-lg { width: 760px; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .modal-header {
+    padding: 22px 28px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    position: sticky; top: 0; background: var(--white); z-index: 1;
+  }
+  .modal-title    { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--navy); }
+  .modal-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; font-family: var(--mono); }
+  .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; padding: 4px 7px; border-radius: 4px; flex-shrink: 0; transition: all 0.1s; }
+  .modal-close:hover { color: var(--navy); background: var(--border); }
+  .modal-body   { padding: 24px 28px; }
+  .modal-footer { padding: 14px 28px 22px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border); }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-mid); font-family: var(--mono); }
+  input[type="text"], input[type="date"], input[type="password"], select, textarea {
+    font-family: var(--sans); font-size: 13px; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 5px; background: var(--off-white); color: var(--text); outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--navy-muted); background: var(--white);
+    box-shadow: 0 0 0 3px rgba(26,58,107,0.1);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* ── TEST CHECKBOXES ── */
+  .test-check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .test-check-item { border-radius: 5px; border: 1px solid var(--border); overflow: hidden; transition: border-color 0.12s; }
+  .test-check-item.checked { border-color: var(--navy-muted); }
+  .test-check-label { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; user-select: none; font-size: 12px; color: var(--text-mid); transition: background 0.1s; }
+  .test-check-item:hover .test-check-label { background: #eef3fc; color: var(--navy); }
+  .test-check-item.checked .test-check-label { background: #eef3fc; color: var(--navy); font-weight: 500; }
+  .test-check-label input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--navy); cursor: pointer; flex-shrink: 0; padding: 0; border: none; background: none; }
+  .test-tod-row { display: none; padding: 6px 12px 9px; background: #eef3fc; border-top: 1px solid var(--border-mid); align-items: center; gap: 8px; }
+  .test-check-item.checked .test-tod-row { display: flex; }
+  .test-tod-row label { font-size: 10px; font-family: var(--mono); color: var(--navy-muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; }
+  .test-tod-row input[type="date"] { flex: 1; font-size: 11px; padding: 4px 8px; border: 1px solid var(--border-mid); border-radius: 4px; background: white; color: var(--text); }
+
+  /* ── DETAIL MODAL ── */
+  .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .di-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 4px; }
+  .di-val   { font-size: 13px; font-weight: 500; color: var(--navy); }
+  .di-val.muted { font-weight: 400; color: var(--text-muted); }
+  .section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
+  .test-rows-head { display: grid; grid-template-columns: 2fr 0.8fr 1fr 1fr 100px; gap: 10px; padding: 0 16px 8px; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+  .test-rows { display: flex; flex-direction: column; gap: 7px; }
+  .test-row { display: grid; grid-template-columns: 2fr 0.8fr 1fr 1fr 100px; gap: 10px; align-items: center; padding: 11px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--off-white); }
+  .test-row-name { font-size: 12px; font-weight: 500; color: var(--navy); }
+  .test-row input[type="date"] { font-size: 12px; padding: 6px 8px; }
+  .test-row select { font-size: 12px; padding: 6px 8px; }
+
+  /* ── AUTOCOMPLETE ── */
+  .autocomplete-wrap { position: relative; }
+  .autocomplete-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--white); border: 1px solid var(--border-mid); border-radius: 6px; box-shadow: 0 8px 28px rgba(10,22,40,0.12); z-index: 999; max-height: 200px; overflow-y: auto; display: none; }
+  .autocomplete-dropdown.open { display: block; }
+  .autocomplete-item { padding: 10px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.active { background: #eef3fc; color: var(--navy); }
+  .autocomplete-item mark { background: none; color: var(--navy-light); font-weight: 700; }
+  .autocomplete-icon { font-size: 11px; color: var(--text-muted); }
+
+  /* ── NOTIFICATIONS ── */
+  .notif-btn { position: relative; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 5px; cursor: pointer; font-size: 16px; padding: 6px 10px; transition: background 0.15s; }
+  .notif-btn:hover { background: rgba(255,255,255,0.18); }
+  .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--gold); color: var(--navy); font-family: var(--mono); font-size: 9px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid var(--navy); }
+  .notif-badge.show { display: flex; }
+  .notif-panel { position: fixed; top: 68px; right: 20px; width: 390px; max-height: 520px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 16px 48px rgba(10,22,40,0.18); z-index: 300; display: none; flex-direction: column; animation: slideUp 0.18s ease; overflow: hidden; border-top: 3px solid var(--navy); }
+  .notif-panel.open { display: flex; }
+  .notif-panel-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: var(--navy); }
+  .notif-panel-title { font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--white); }
+  .notif-panel-meta  { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .notif-close-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-size: 11px; color: rgba(255,255,255,0.7); padding: 4px 10px; border-radius: 4px; font-family: var(--sans); }
+  .notif-close-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+  .notif-list { overflow-y: auto; flex: 1; padding: 6px 0; }
+  .notif-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item:hover { background: var(--off-white); }
+  .notif-icon { width: 34px; height: 34px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .notif-icon.warn   { background: var(--amber-light); }
+  .notif-icon.urgent { background: var(--red-light); }
+  .notif-body  { flex: 1; }
+  .notif-title { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+  .notif-desc  { font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+  .notif-time  { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+  .notif-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex-shrink: 0; margin-top: 5px; }
+  .notif-empty { text-align: center; padding: 44px 20px; color: var(--text-muted); font-size: 13px; }
+  .notif-empty-icon { font-size: 30px; margin-bottom: 10px; }
+
+  /* ── LOGIN ── */
+  #loginPage { display: none; position: fixed; inset: 0; background: var(--navy); z-index: 2000; align-items: center; justify-content: center; }
+  #loginPage.show { display: flex; }
+  .login-card {
+    background: var(--white); border-radius: 10px; padding: 48px 52px; width: 420px; max-width: 94vw;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.3); animation: slideUp 0.22s ease;
+    border-top: 5px solid var(--gold);
+  }
+  .login-logo { font-family: var(--display); font-size: 28px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .login-logo span { color: var(--gold); }
+  .login-tagline { font-size: 13px; color: var(--text-muted); margin-bottom: 36px; font-family: var(--mono); letter-spacing: 0.04em; }
+  .login-form { display: flex; flex-direction: column; gap: 14px; }
+  .login-form input { padding: 12px 16px; border: 1px solid var(--border); border-radius: 5px; font-family: var(--sans); font-size: 14px; background: var(--off-white); color: var(--text); outline: none; transition: all 0.15s; }
+  .login-form input:focus { border-color: var(--navy-muted); background: var(--white); box-shadow: 0 0 0 3px rgba(26,58,107,0.12); }
+  .login-btn { padding: 13px; background: var(--navy); color: var(--white); border: none; border-radius: 5px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; letter-spacing: 0.03em; }
+  .login-btn:hover { background: var(--navy-light); }
+  .login-error { font-size: 12px; color: var(--red); background: var(--red-light); padding: 9px 14px; border-radius: 5px; display: none; font-family: var(--mono); }
+  .login-error.show { display: block; }
+
+  /* ── ADMIN PANEL ── */
+  #adminOverlay { z-index: 400; }
+  .admin-section { margin-bottom: 22px; }
+  .admin-section-title { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
+  .user-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--off-white); margin-bottom: 7px; }
+  .user-row-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--navy); }
+  .user-row-role { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 4px; font-weight: 500; }
+  .role-admin { background: var(--navy); color: var(--gold); }
+  .role-user  { background: var(--border); color: var(--text-muted); }
+  .add-user-form { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; align-items: end; margin-top: 10px; }
+  .add-user-form input, .add-user-form select { padding: 9px 12px; font-size: 12px; }
+  .user-badge { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); padding: 4px 12px; border-radius: 4px; font-weight: 500; border: 1px solid rgba(255,255,255,0.2); letter-spacing: 0.04em; }
+
+  /* ── SEARCH HIGHLIGHT ── */
+  .hl { background: #ffe066; color: var(--navy); border-radius: 2px; padding: 0 2px; font-weight: 600; }
+
+  @media print {
+    header, .toolbar, .stats-bar, .action-btn, th:last-child, td:last-child, th:first-child, td:first-child { display: none !important; }
+    body { background: white; }
+    main { padding: 10px; max-width: 100%; }
+    .table-wrap { border: 1px solid #ccc; border-radius: 0; }
+    tr.order-row:not(.selected) { display: none !important; }
+    @page { margin: 1.5cm; size: landscape; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="show">
+  <div class="login-card">
+    <div class="login-logo">Order<span>Track</span></div>
+    <div class="login-tagline">Sign in to continue</div>
+    <div class="login-form">
+      <input type="text" id="loginUser" placeholder="Username" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="loginPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="login-error" id="loginError">Incorrect username or password.</div>
+      <button class="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="overlay" id="adminOverlay">
+  <div class="modal" style="width:520px">
+    <div class="modal-header">
+      <div><div class="modal-title">User Management</div><div class="modal-subtitle">Admin only</div></div>
+      <button class="modal-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="admin-section">
+        <div class="admin-section-title">Current Users</div>
+        <div id="userList"></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">Add New User</div>
+        <div class="add-user-form">
+          <div class="form-group"><label>Username</label><input type="text" id="newUsername" placeholder="e.g. john"></div>
+          <div class="form-group"><label>Password</label><input type="password" id="newPassword" placeholder="password"></div>
+          <div class="form-group"><label>Role</label>
+            <select id="newRole"><option value="user">User</option><option value="admin">Admin</option></select>
+          </div>
+          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addUser()">Add</button></div>
+        </div>
+        <div class="login-error" id="addUserError" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAdmin()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="overlay" id="changePassOverlay">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <div><div class="modal-title">Change Credentials</div><div class="modal-subtitle" id="changePassSub"></div></div>
+      <button class="modal-close" onclick="closeChangePass()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="grid-template-columns:1fr;">
+        <div class="form-group">
+          <label>New Username</label>
+          <input type="text" id="cpNewUsername" placeholder="Enter new username">
+        </div>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="cpCurrent" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="cpNew" placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="cpConfirm" placeholder="Confirm new password">
+        </div>
+        <div class="login-error" id="cpError"></div>
+        <div class="login-error" id="cpSuccess" style="background:var(--accent-light);color:var(--accent);border:none"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeChangePass()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveChangePass()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Order<span>Track</span></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="header-meta" id="dateDisplay"></div>
+    <span class="user-badge" id="userBadge"></span>
+    <button class="btn btn-ghost" id="adminBtn" onclick="openAdmin()" style="display:none;font-size:12px;padding:6px 12px;color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.08)">⚙ Users</button>
+    <button class="btn btn-ghost" id="myAccountBtn" onclick="openChangePass()" style="display:none;font-size:12px;padding:6px 12px;color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.08)">🔑 My Account</button>
+    <button class="notif-btn" onclick="toggleNotifPanel()" id="notifBtn" title="Notifications">
+      🔔<span class="notif-badge" id="notifBadge"></span>
+    </button>
+    <button class="btn btn-ghost" onclick="doLogout()" style="font-size:12px;padding:6px 12px;color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.08)">↩ Sign Out</button>
+  </div>
+</header>
+
+<!-- Notification Panel -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-header">
+    <div>
+      <div class="notif-panel-title">Notifications</div>
+      <div class="notif-panel-meta" id="notifMeta"></div>
+    </div>
+    <button class="notif-close-btn" onclick="toggleNotifPanel()">Close</button>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</div>
+
+<main>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-val" id="sTotal">0</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat"><div class="stat-val" id="sTests">0</div><div class="stat-label">Total Tests</div></div>
+    <div class="stat"><div class="stat-val" id="sPending">0</div><div class="stat-label">Result Pending</div></div>
+    <div class="stat"><div class="stat-val" id="sPass">0</div><div class="stat-label">Passed</div></div>
+    <div class="stat"><div class="stat-val" id="sFail">0</div><div class="stat-label">Failed</div></div>
+    <div class="stat stat-warn stat-btn" id="btnSendPending" title="Click to filter" onclick="toggleStatFilter('send')">
+      <div class="stat-val" id="sSendPending">0</div>
+      <div class="stat-label">Sending Pending ▾</div>
+    </div>
+    <div class="stat stat-info stat-btn" id="btnReportPending" title="Click to filter" onclick="toggleStatFilter('report')">
+      <div class="stat-val" id="sReportPending">0</div>
+      <div class="stat-label">Report Pending ▾</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-gold" onclick="openAddModal()">＋ Add Order</button>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍  Search orders…" oninput="renderTable()">
+    </div>
+    <div class="date-range-filter">
+      <span class="date-range-label">Test TOD</span>
+      <input type="date" id="filterFrom" onchange="renderTable()" title="From">
+      <span class="date-range-sep">→</span>
+      <input type="date" id="filterTo" onchange="renderTable()" title="To">
+      <button class="btn-clear-range" id="clearRangeBtn" onclick="clearDateRange()" title="Clear">✕</button>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <span id="selectionLabel" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);display:none"></span>
+      <button class="btn btn-ghost" onclick="exportExcel()">⬇ Excel</button>
+      <button class="btn btn-ghost" onclick="printOrders()">🖨 Print</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="accent-color:var(--accent);cursor:pointer;width:14px;height:14px"></th>
+          <th>Order #</th>
+          <th>Department</th>
+          <th>Style</th>
+          <th>Color</th>
+          <th>Season</th>
+          <th>First TOD</th>
+          <th>Test Requirements</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyState">
+      <div class="empty-icon">📦</div>
+      <p>No orders yet. Click <strong>Add Order</strong> to get started.</p>
+    </div>
+  </div>
+</main>
+
+<!-- ADD / EDIT MODAL -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="addTitle">Add New Order</div>
+        <div class="modal-subtitle">Fill in details and select test requirements</div>
+      </div>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Order Number</label>
+          <input type="text" id="f_num" placeholder="e.g. ORD-1024">
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="f_dept" placeholder="e.g. Woven, Knit">
+        </div>
+        <div class="form-group">
+          <label>Style</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="f_style" placeholder="e.g. Bomber Jacket" autocomplete="off"
+              oninput="styleAC(this)" onfocus="styleAC(this)"
+              onkeydown="styleKeyNav(event)" onblur="setTimeout(closeStyleAC,150)">
+            <div class="autocomplete-dropdown" id="styleDropdown"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Color</label>
+          <input type="text" id="f_color" placeholder="e.g. Navy Blue">
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <input type="text" id="f_season" placeholder="e.g. SS25">
+        </div>
+        <div class="form-group">
+          <label>First TOD</label>
+          <input type="date" id="f_tod">
+        </div>
+        <div class="form-group full">
+          <label>Notes / Remarks</label>
+          <textarea id="f_notes" placeholder="Any additional notes…"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Test Requirements</label>
+          <div class="test-check-grid" id="checkGrid"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="dTitle">Order Details</div>
+        <div class="modal-subtitle" id="dSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="dInfo"></div>
+      <div class="section-label">Test Requirements — Sending & Report Details</div>
+      <div class="test-rows-head">
+        <div>Test Name</div><div>TOD</div><div>Garment Sent</div><div>Report Received</div><div>Result</div>
+      </div>
+      <div class="test-rows" id="dTests"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
+      <button class="btn btn-primary" onclick="saveTestDetails()">Save Details</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEST_LIST = [
+  'China Fabric Test','China Garments Test','Fiber Composition Test',
+  'Inhouse CIQ Test','Inhouse KOTITI Test','Inhouse PS Test',
+  'Korea Fabric Test','Korea Garments Test',
+  'Third Party CIQ Test','Third Party KOTITI Test','Third Party PS Test'
+];
+const NOTIF_DAYS = 7;
+
+let orders        = JSON.parse(localStorage.getItem('ot_v4') || '[]');
+let editId        = null;
+let detailId      = null;
+let filteredList  = [];
+let selectedIds   = new Set();
+let activeStatFilter = null;
+let acActiveIdx   = -1;
+
+// ── INIT ──
+function updateClock() {
+  const now = new Date();
+  const date = now.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  const time = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('dateDisplay').textContent = `${date}  ·  ${time}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+document.getElementById('addOverlay').addEventListener('click',   e => { if(e.target.id==='addOverlay')    closeAddModal(); });
+document.getElementById('detailOverlay').addEventListener('click', e => { if(e.target.id==='detailOverlay') closeDetailModal(); });
+document.addEventListener('click', e => {
+  const panel = document.getElementById('notifPanel');
+  const btn   = document.getElementById('notifBtn');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && !btn.contains(e.target))
+    panel.classList.remove('open');
+});
+
+function persist() { localStorage.setItem('ot_v4', JSON.stringify(orders)); }
+function fmtDate(d) { if(!d) return '—'; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+
+// ── CHECK GRID ──
+function buildCheckGrid(existing=[]) {
+  const map = {};
+  existing.forEach(t => map[t.name] = t);
+  document.getElementById('checkGrid').innerHTML = TEST_LIST.map((t,i) => {
+    const ex = map[t]; const checked = !!ex; const todVal = ex?.tod||'';
+    return `<div class="test-check-item ${checked?'checked':''}" id="tci_${i}">
+      <label class="test-check-label" onclick="toggleTestItem(${i})">
+        <input type="checkbox" value="${t}" ${checked?'checked':''} onclick="event.stopPropagation();toggleTestItem(${i})">
+        ${t}
+      </label>
+      <div class="test-tod-row">
+        <label>TOD</label>
+        <input type="date" id="ttod_${i}" value="${todVal}">
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleTestItem(i) {
+  const item = document.getElementById('tci_'+i);
+  const cb   = item.querySelector('input[type="checkbox"]');
+  cb.checked = !cb.checked;
+  item.classList.toggle('checked', cb.checked);
+}
+
+// ── ADD MODAL ──
+function openAddModal(id=null) {
+  editId = id;
+  const o = id!=null ? orders.find(x=>x.id===id) : null;
+  document.getElementById('addTitle').textContent  = o ? 'Edit Order' : 'Add New Order';
+  document.getElementById('f_num').value    = o?.orderNum||'';
+  document.getElementById('f_dept').value   = o?.dept||'';
+  document.getElementById('f_style').value  = o?.style||'';
+  document.getElementById('f_color').value  = o?.color||'';
+  document.getElementById('f_season').value = o?.season||'';
+  document.getElementById('f_tod').value    = o?.tod||'';
+  document.getElementById('f_notes').value  = o?.notes||'';
+  buildCheckGrid(o ? (o.tests||[]) : []);
+  document.getElementById('addOverlay').classList.add('open');
+}
+function closeAddModal() { document.getElementById('addOverlay').classList.remove('open'); editId=null; }
+
+function saveOrder() {
+  const orderNum = document.getElementById('f_num').value.trim()||'—';
+  const dup = orders.find(x => x.orderNum.toLowerCase()===orderNum.toLowerCase() && x.id!==editId);
+  if (dup) { alert(`Order "${orderNum}" already exists.`); document.getElementById('f_num').focus(); return; }
+
+  const selected = [...document.querySelectorAll('#checkGrid .test-check-item.checked')].map(item => {
+    const name = item.querySelector('input[type="checkbox"]').value;
+    const idx  = TEST_LIST.indexOf(name);
+    return { name, tod: document.getElementById('ttod_'+idx)?.value||'' };
+  });
+
+  const data = {
+    orderNum,
+    dept:   document.getElementById('f_dept').value.trim(),
+    style:  document.getElementById('f_style').value.trim()||'—',
+    color:  document.getElementById('f_color').value.trim()||'—',
+    season: document.getElementById('f_season').value.trim()||'—',
+    tod:    document.getElementById('f_tod').value,
+    notes:  document.getElementById('f_notes').value.trim(),
+  };
+
+  if (editId!=null) {
+    const o = orders.find(x=>x.id===editId);
+    Object.assign(o, data);
+    o.tests = selected.map(({name,tod}) => {
+      const ex = o.tests.find(t=>t.name===name);
+      return ex ? {...ex, tod} : {name,tod,sentDate:'',reportDate:'',result:'Pending'};
+    });
+  } else {
+    orders.push({ id:Date.now(), ...data, tests: selected.map(({name,tod})=>({name,tod,sentDate:'',reportDate:'',result:'Pending'})) });
+  }
+  persist(); closeAddModal(); refresh();
+}
+
+// ── DETAIL MODAL ──
+function openDetailModal(id) {
+  detailId = id;
+  const o  = orders.find(x=>x.id===id);
+  document.getElementById('dTitle').textContent = `Order ${o.orderNum}`;
+  document.getElementById('dSub').textContent   = `${o.style} · ${o.color}`;
+  document.getElementById('dInfo').innerHTML = [
+    {l:'Order #',    v:o.orderNum},
+    {l:'Department', v:o.dept||'—'},
+    {l:'Style',      v:o.style},
+    {l:'Color',      v:o.color},
+    {l:'Season',     v:o.season||'—'},
+    {l:'First TOD',  v:o.tod?fmtDate(o.tod):'—'},
+    {l:'Notes',      v:o.notes||'—', muted:true},
+  ].map(f=>`<div><div class="di-label">${f.l}</div><div class="di-val${f.muted?' muted':''}">${f.v}</div></div>`).join('');
+
+  if (!o.tests||o.tests.length===0) {
+    document.getElementById('dTests').innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No test requirements for this order.</div>';
+  } else {
+    document.getElementById('dTests').innerHTML = o.tests.map((t,i)=>`
+      <div class="test-row">
+        <div class="test-row-name">${t.name}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">${t.tod?fmtDate(t.tod):'—'}</div>
+        <input type="date" id="ts_${i}" value="${t.sentDate||''}">
+        <input type="date" id="tr_${i}" value="${t.reportDate||''}">
+        <select id="res_${i}">
+          <option ${t.result==='Pending'?'selected':''}>Pending</option>
+          <option ${t.result==='Pass'?'selected':''}>Pass</option>
+          <option ${t.result==='Fail'?'selected':''}>Fail</option>
+        </select>
+      </div>`).join('');
+  }
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function closeDetailModal() { document.getElementById('detailOverlay').classList.remove('open'); detailId=null; }
+
+function saveTestDetails() {
+  const o = orders.find(x=>x.id===detailId);
+  o.tests.forEach((t,i)=>{
+    t.sentDate   = document.getElementById(`ts_${i}`).value;
+    t.reportDate = document.getElementById(`tr_${i}`).value;
+    t.result     = document.getElementById(`res_${i}`).value;
+  });
+  persist(); closeDetailModal(); refresh();
+}
+
+// ── DELETE ──
+let _deleteId = null;
+function delOrder(id) {
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  _deleteId = id;
+  document.getElementById('confirmMsg').textContent = `Are you sure you want to delete order "${o.orderNum}" (${o.style})? This cannot be undone.`;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function confirmDelete() {
+  if(_deleteId===null) return;
+  orders = orders.filter(x=>x.id!==_deleteId);
+  _deleteId = null;
+  persist(); closeConfirm(); refresh();
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  _deleteId = null;
+}
+
+// ── STAT FILTER ──
+function toggleStatFilter(type) {
+  activeStatFilter = (activeStatFilter === type) ? null : type;
+  document.getElementById('btnSendPending').classList.toggle('active-filter',   activeStatFilter === 'send');
+  document.getElementById('btnReportPending').classList.toggle('active-filter', activeStatFilter === 'report');
+  renderTable();
+}
+
+// ── DATE RANGE ──
+function clearDateRange() {
+  document.getElementById('filterFrom').value='';
+  document.getElementById('filterTo').value='';
+  renderTable();
+}
+
+// ── RENDER TABLE ──
+function renderTable() {
+  const q       = document.getElementById('searchInput').value.toLowerCase();
+  const fromVal = document.getElementById('filterFrom').value;
+  const toVal   = document.getElementById('filterTo').value;
+  const fromD   = fromVal ? new Date(fromVal) : null;
+  const toD     = toVal   ? new Date(toVal)   : null;
+
+  document.getElementById('clearRangeBtn').classList.toggle('visible', !!(fromVal||toVal));
+  document.querySelector('.date-range-filter').classList.toggle('active', !!(fromVal||toVal));
+
+  filteredList = orders.filter(o => {
+    if (q && ![o.orderNum,o.dept,o.style,o.color,o.season,o.notes].join(' ').toLowerCase().includes(q)) return false;
+    if (fromD||toD) {
+      const match = (o.tests||[]).some(t => {
+        if (!t.tod) return false;
+        const td = new Date(t.tod);
+        if (fromD && td < fromD) return false;
+        if (toD   && td > toD)   return false;
+        return true;
+      });
+      if (!match) return false;
+    }
+    if (activeStatFilter==='send'   && !(o.tests||[]).some(t=>t.tod && !t.sentDate))   return false;
+    if (activeStatFilter==='report' && !(o.tests||[]).some(t=>t.sentDate && !t.reportDate)) return false;
+    return true;
+  });
+
+  // Sort: exact start matches first, then contains
+  if (q) {
+    filteredList.sort((a, b) => {
+      const aFields = [a.orderNum, a.style, a.dept, a.color].join(' ').toLowerCase();
+      const bFields = [b.orderNum, b.style, b.dept, b.color].join(' ').toLowerCase();
+      const aStarts = aFields.startsWith(q) ? 0 : 1;
+      const bStarts = bFields.startsWith(q) ? 0 : 1;
+      return aStarts - bStarts;
+    });
+  }
+
+  document.getElementById('emptyState').style.display = filteredList.length ? 'none' : '';
+
+  document.getElementById('tbody').innerHTML = filteredList.map(o => {
+    const isSel = selectedIds.has(o.id);
+    // Row is "completed" if it has at least one test AND all tests have report received + result is Pass
+    const tests = o.tests || [];
+    const isCompleted = tests.length > 0 && tests.every(t => t.reportDate && t.result === 'Pass');
+
+    // Highlight matching text
+    const hl = (text) => {
+      if (!q || !text) return text || '';
+      const str = String(text);
+      const idx = str.toLowerCase().indexOf(q);
+      if (idx === -1) return str;
+      return str.slice(0,idx) + '<span class="hl">' + str.slice(idx,idx+q.length) + '</span>' + str.slice(idx+q.length);
+    };
+
+    // Decide which tests to show based on active stat filter
+    let visibleTests = (o.tests||[]);
+    if (activeStatFilter === 'send') {
+      // Only tests with TOD but no garment sent yet
+      visibleTests = visibleTests.filter(t => t.tod && !t.sentDate);
+    } else if (activeStatFilter === 'report') {
+      // Only tests where garment sent but report not received
+      visibleTests = visibleTests.filter(t => t.sentDate && !t.reportDate);
+    }
+
+    // Further filter by date range if active
+    if (fromD || toD) {
+      visibleTests = visibleTests.filter(t => {
+        if (!t.tod) return false;
+        const td = new Date(t.tod);
+        if (fromD && td < fromD) return false;
+        if (toD   && td > toD)   return false;
+        return true;
+      });
+    }
+
+    const chips = visibleTests.map(t => {
+      const cls = t.result==='Pass'?'pass':t.result==='Fail'?'fail':'';
+      // Highlight send-pending tests in yellow, report-pending in purple
+      let outlineStyle = '';
+      if (activeStatFilter === 'send')   outlineStyle = 'outline:2px solid var(--yellow);outline-offset:1px;';
+      if (activeStatFilter === 'report') outlineStyle = 'outline:2px solid #4338ca;outline-offset:1px;';
+      return `<span class="test-chip ${cls}" style="${outlineStyle}" title="TOD: ${t.tod?fmtDate(t.tod):'—'} | Sent: ${t.sentDate?fmtDate(t.sentDate):'Not sent'} | Report: ${t.reportDate?fmtDate(t.reportDate):'Not received'}">${t.name}</span>`;
+    }).join('');
+
+    return `<tr class="order-row${isSel?' selected':''}${isCompleted?' completed':''}" id="row_${o.id}">
+      <td onclick="event.stopPropagation()" style="text-align:center">
+        <input type="checkbox" ${isSel?'checked':''} style="accent-color:var(--accent);cursor:pointer;width:14px;height:14px" onchange="toggleSelect(${o.id},this.checked)" onclick="event.stopPropagation()">
+      </td>
+      <td onclick="openDetailModal(${o.id})"><span class="order-num">${hl(o.orderNum)}</span></td>
+      <td onclick="openDetailModal(${o.id})" style="font-size:12px;color:var(--text-muted)">${hl(o.dept)||'—'}</td>
+      <td onclick="openDetailModal(${o.id})">${hl(o.style)}</td>
+      <td onclick="openDetailModal(${o.id})">${hl(o.color)}</td>
+      <td onclick="openDetailModal(${o.id})" style="font-family:var(--mono);font-size:11px">${hl(o.season)||'—'}</td>
+      <td onclick="openDetailModal(${o.id})" style="font-family:var(--mono);font-size:11px">${o.tod?fmtDate(o.tod):'—'}</td>
+      <td onclick="openDetailModal(${o.id})"><div class="test-chips">${chips||'<span style="color:var(--text-muted);font-size:11px">—</span>'}</div></td>
+      <td onclick="openDetailModal(${o.id})" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:12px">${hl(o.notes)||'—'}</td>
+      <td style="white-space:nowrap" onclick="event.stopPropagation()">
+        <button class="action-btn" onclick="openAddModal(${o.id})" title="Edit">✎</button>
+        <button class="action-btn del" onclick="delOrder(${o.id})" title="Delete">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  syncSelectAllCheckbox();
+}
+
+// ── RENDER STATS ──
+function renderStats() {
+  const all = orders.flatMap(o=>o.tests||[]);
+  document.getElementById('sTotal').textContent        = orders.length;
+  document.getElementById('sTests').textContent        = all.length;
+  document.getElementById('sPending').textContent      = all.filter(t=>t.result==='Pending').length;
+  document.getElementById('sPass').textContent         = all.filter(t=>t.result==='Pass').length;
+  document.getElementById('sFail').textContent         = all.filter(t=>t.result==='Fail').length;
+  document.getElementById('sSendPending').textContent  = all.filter(t=>t.tod && !t.sentDate).length;
+  document.getElementById('sReportPending').textContent= all.filter(t=>t.sentDate && !t.reportDate).length;
+}
+
+function refresh() { renderTable(); renderStats(); renderNotifPanel(); }
+
+// ── SELECTION ──
+function toggleSelect(id, checked) {
+  if(checked) selectedIds.add(id); else selectedIds.delete(id);
+  const row = document.getElementById('row_'+id);
+  if(row) row.classList.toggle('selected', checked);
+  updateSelectionLabel();
+  syncSelectAllCheckbox();
+}
+function toggleSelectAll(cb) {
+  filteredList.forEach(o => { if(cb.checked) selectedIds.add(o.id); else selectedIds.delete(o.id); });
+  renderTable(); updateSelectionLabel();
+}
+function syncSelectAllCheckbox() {
+  const cb = document.getElementById('selectAll');
+  if(!cb||!filteredList.length) return;
+  const all  = filteredList.every(o=>selectedIds.has(o.id));
+  const some = filteredList.some(o=>selectedIds.has(o.id));
+  cb.checked = all; cb.indeterminate = some && !all;
+}
+function updateSelectionLabel() {
+  const lbl = document.getElementById('selectionLabel');
+  const n = selectedIds.size;
+  lbl.textContent = n > 0 ? `${n} selected` : '';
+  lbl.style.display = n > 0 ? '' : 'none';
+}
+function getExportList() {
+  return selectedIds.size > 0 ? filteredList.filter(o=>selectedIds.has(o.id)) : filteredList;
+}
+
+// ── TESTS IN RANGE ──
+function getTestsInRange(tests) {
+  const fromVal = document.getElementById('filterFrom').value;
+  const toVal   = document.getElementById('filterTo').value;
+  const fromD   = fromVal ? new Date(fromVal) : null;
+  const toD     = toVal   ? new Date(toVal)   : null;
+  if(!fromD && !toD) return tests||[];
+  return (tests||[]).filter(t => {
+    if(!t.tod) return false;
+    const td = new Date(t.tod);
+    if(fromD && td < fromD) return false;
+    if(toD   && td > toD)   return false;
+    return true;
+  });
+}
+
+// ── EXPORT EXCEL ──
+function exportExcel() {
+  const list = getExportList();
+  if(!list.length) { alert('No orders to export.'); return; }
+  const rows = [];
+  list.forEach(o => {
+    const tests = getTestsInRange(o.tests);
+    if(!tests.length) {
+      rows.push({'Order #':o.orderNum,'Department':o.dept||'—','Style':o.style,'Color':o.color,'Season':o.season||'—','First TOD':o.tod?fmtDate(o.tod):'—','Test Name':'—','Test TOD':'—','Garment Sent':'—','Report Received':'—','Result':'—','Notes':o.notes||''});
+    } else {
+      tests.forEach((t,i)=>{
+        rows.push({
+          'Order #':        i===0?o.orderNum:'',
+          'Department':     i===0?(o.dept||'—'):'',
+          'Style':          i===0?o.style:'',
+          'Color':          i===0?o.color:'',
+          'Season':         i===0?(o.season||'—'):'',
+          'First TOD':      i===0?(o.tod?fmtDate(o.tod):'—'):'',
+          'Test Name':      t.name,
+          'Test TOD':       t.tod?fmtDate(t.tod):'—',
+          'Garment Sent':   t.sentDate?fmtDate(t.sentDate):'—',
+          'Report Received':t.reportDate?fmtDate(t.reportDate):'—',
+          'Result':         t.result||'Pending',
+          'Notes':          i===0?(o.notes||''):'',
+        });
+      });
+    }
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:14},{wch:14},{wch:18},{wch:14},{wch:10},{wch:12},{wch:24},{wch:12},{wch:14},{wch:16},{wch:10},{wch:28}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+  const now=new Date(), stamp=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `OrderTrack_${stamp}.xlsx`);
+}
+
+// ── PRINT ──
+function printOrders() {
+  const list = getExportList();
+  if(!list.length) { alert('No orders to print.'); return; }
+  const fromVal = document.getElementById('filterFrom').value;
+  const toVal   = document.getElementById('filterTo').value;
+  const rangeLabel = (fromVal||toVal) ? `Test TOD: ${fromVal?fmtDate(fromVal):'…'} → ${toVal?fmtDate(toVal):'…'}` : 'All Tests';
+  let rows = '';
+  list.forEach(o => {
+    const tests = getTestsInRange(o.tests);
+    if(!tests.length) return;
+    tests.forEach((t,i)=>{
+      rows += `<tr>
+        <td>${i===0?o.orderNum:''}</td><td>${i===0?(o.dept||'—'):''}</td>
+        <td>${i===0?o.style:''}</td><td>${i===0?o.color:''}</td>
+        <td>${i===0?(o.season||'—'):''}</td><td>${i===0?(o.tod?fmtDate(o.tod):'—'):''}</td>
+        <td>${t.name}</td><td>${t.tod?fmtDate(t.tod):'—'}</td>
+        <td>${t.sentDate?fmtDate(t.sentDate):'—'}</td><td>${t.reportDate?fmtDate(t.reportDate):'—'}</td>
+        <td class="r-${(t.result||'pending').toLowerCase()}">${t.result||'Pending'}</td>
+      </tr>`;
+    });
+  });
+  if(!rows) { alert('No tests in selected range to print.'); return; }
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>OrderTrack</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;padding:24px}
+  h2{font-size:16px;margin-bottom:4px}.meta{font-size:11px;color:#888;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse}th{background:#f7f6f3;padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #e8e5df}
+  td{padding:7px 10px;border-bottom:1px solid #e8e5df;vertical-align:top}
+  .r-pass{color:#2d6a4f;font-weight:600}.r-fail{color:#c0392b;font-weight:600}.r-pending{color:#b7791f}
+  @page{margin:1.5cm;size:landscape}</style></head><body>
+  <h2>OrderTrack — Test Report</h2>
+  <div class="meta">${rangeLabel} · Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+  <table><thead><tr><th>Order #</th><th>Dept</th><th>Style</th><th>Color</th><th>Season</th><th>First TOD</th><th>Test Name</th><th>Test TOD</th><th>Garment Sent</th><th>Report Received</th><th>Result</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+<!-- CONFIRM DELETE MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">
+      <div><div class="modal-title">Delete Order</div><div class="modal-subtitle">This action cannot be undone</div></div>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 28px">
+      <p style="font-size:14px;color:var(--text-mid);line-height:1.6" id="confirmMsg"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn" style="background:var(--red);color:white;border-color:var(--red)" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+</body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(), 400);
+}
+
+// ── NOTIFICATIONS ──
+function buildNotifications() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const notifs = [];
+  orders.forEach(o => {
+    (o.tests||[]).forEach(t => {
+      if(!t.tod || t.sentDate) return; // skip if no TOD or already sent
+      const tod = new Date(t.tod); tod.setHours(0,0,0,0);
+      const daysUntil = Math.ceil((tod - today) / 86400000);
+      if(daysUntil <= NOTIF_DAYS) {
+        const isPast=daysUntil<0, isToday=daysUntil===0;
+        notifs.push({
+          type: (isPast||isToday)?'urgent':'warn',
+          icon: isPast?'🚨':isToday?'⚠️':'⏰',
+          title: `${t.name} — ${o.orderNum}`,
+          desc:  isPast
+            ? `Garment NOT sent! TOD was ${Math.abs(daysUntil)}d ago — ${o.style} · ${o.color}`
+            : isToday
+              ? `Garment NOT sent! TOD is TODAY — ${o.style} · ${o.color}`
+              : `Send garment in ${daysUntil} day${daysUntil>1?'s':''} — ${o.style} · ${o.color} · Due ${fmtDate(t.tod)}`,
+          time: fmtDate(t.tod), daysUntil, orderId: o.id
+        });
+      }
+    });
+  });
+  notifs.sort((a,b)=>a.daysUntil-b.daysUntil);
+  return notifs;
+}
+
+function renderNotifPanel() {
+  const notifs = buildNotifications();
+  const badge  = document.getElementById('notifBadge');
+  badge.textContent = notifs.length > 99 ? '99+' : notifs.length;
+  badge.classList.toggle('show', notifs.length > 0);
+  document.getElementById('notifMeta').textContent = notifs.length===0
+    ? 'All garments sent ✓'
+    : `${notifs.length} test${notifs.length>1?'s':''} pending garment sending`;
+
+  const list = document.getElementById('notifList');
+  if(!notifs.length) {
+    list.innerHTML = '<div class="notif-empty"><div class="notif-empty-icon">✅</div>All garments sent for upcoming tests!</div>';
+    return;
+  }
+  list.innerHTML = notifs.map(n=>`
+    <div class="notif-item" onclick="notifClick(${n.orderId})">
+      <div class="notif-icon ${n.type}">${n.icon}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-desc">${n.desc}</div>
+        <div class="notif-time">Test TOD: ${n.time}</div>
+      </div>
+      <div class="notif-dot"></div>
+    </div>`).join('');
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) renderNotifPanel();
+}
+
+function notifClick(orderId) {
+  document.getElementById('notifPanel').classList.remove('open');
+  openDetailModal(orderId);
+}
+
+// ── STYLE AUTOCOMPLETE ──
+function getSavedStyles() {
+  const seen=new Set(), styles=[];
+  [...orders].reverse().forEach(o=>{ const s=(o.style||'').trim(); if(s&&s!=='—'&&!seen.has(s.toLowerCase())){seen.add(s.toLowerCase());styles.push(o.style);} });
+  return styles;
+}
+function styleAC(input) {
+  const q=input.value.trim().toLowerCase(), all=getSavedStyles();
+  const matches = q ? all.filter(s=>s.toLowerCase().includes(q)) : all;
+  const dd = document.getElementById('styleDropdown');
+  acActiveIdx = -1;
+  if(!matches.length) { dd.classList.remove('open'); return; }
+  dd.innerHTML = matches.map((s,i)=>{
+    const idx=s.toLowerCase().indexOf(q);
+    const hl = q&&idx!==-1 ? s.slice(0,idx)+'<mark>'+s.slice(idx,idx+q.length)+'</mark>'+s.slice(idx+q.length) : s;
+    return `<div class="autocomplete-item" data-val="${s}" data-idx="${i}" onmousedown="pickStyle('${s.replace(/'/g,"\\'")}')"><span class="autocomplete-icon">↩</span><span>${hl}</span></div>`;
+  }).join('');
+  dd.classList.add('open');
+}
+function pickStyle(val) { document.getElementById('f_style').value=val; closeStyleAC(); }
+function closeStyleAC() { document.getElementById('styleDropdown').classList.remove('open'); acActiveIdx=-1; }
+function styleKeyNav(e) {
+  const dd=document.getElementById('styleDropdown'), items=dd.querySelectorAll('.autocomplete-item');
+  if(!dd.classList.contains('open')||!items.length) return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); acActiveIdx=Math.min(acActiveIdx+1,items.length-1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); acActiveIdx=Math.max(acActiveIdx-1,-1); }
+  else if(e.key==='Enter'&&acActiveIdx>=0){ e.preventDefault(); pickStyle(items[acActiveIdx].dataset.val); return; }
+  else if(e.key==='Escape'){ closeStyleAC(); return; }
+  else return;
+  items.forEach((el,i)=>el.classList.toggle('active',i===acActiveIdx));
+  if(acActiveIdx>=0) items[acActiveIdx].scrollIntoView({block:'nearest'});
+}
+
+
+// ── AUTH ──
+const DEFAULT_USERS = [{ username: 'admin', password: 'admin123', role: 'admin' }];
+let users       = JSON.parse(localStorage.getItem('ot_users') || JSON.stringify(DEFAULT_USERS));
+let currentUser = JSON.parse(sessionStorage.getItem('ot_session') || 'null');
+
+function persistUsers() { localStorage.setItem('ot_users', JSON.stringify(users)); }
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value;
+  const found = users.find(x => x.username.toLowerCase()===u && x.password===p);
+  if (!found) {
+    const err = document.getElementById('loginError');
+    err.classList.add('show');
+    setTimeout(()=>err.classList.remove('show'), 3000);
+    return;
+  }
+  currentUser = { username: found.username, role: found.role };
+  sessionStorage.setItem('ot_session', JSON.stringify(currentUser));
+  document.getElementById('loginPage').classList.remove('show');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  initApp();
+}
+
+function doLogout() {
+  currentUser = null;
+  sessionStorage.removeItem('ot_session');
+  // Clear all input fields
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('userBadge').textContent = '';
+  document.getElementById('adminBtn').style.display     = 'none';
+  document.getElementById('myAccountBtn').style.display = 'none';
+  // Close any open panels/modals
+  document.getElementById('notifPanel').classList.remove('open');
+  document.getElementById('addOverlay').classList.remove('open');
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('changePassOverlay').classList.remove('open');
+  // Show login page
+  document.getElementById('loginPage').classList.add('show');
+}
+
+function initApp() {
+  document.getElementById('userBadge').textContent = currentUser.username;
+  document.getElementById('adminBtn').style.display    = currentUser.role==='admin' ? '' : 'none';
+  document.getElementById('myAccountBtn').style.display = currentUser.role==='admin' ? '' : 'none';
+  refresh();
+}
+
+// ── ADMIN ──
+function openAdmin() {
+  renderUserList();
+  document.getElementById('adminOverlay').classList.add('open');
+}
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('newUsername').value='';
+  document.getElementById('newPassword').value='';
+}
+
+function renderUserList() {
+  document.getElementById('userList').innerHTML = users.map((u,i) => `
+    <div class="user-row">
+      <div class="user-row-name">${u.username}</div>
+      <span class="user-row-role ${u.role==='admin'?'role-admin':'role-user'}">${u.role}</span>
+      <button class="action-btn" onclick="openChangePassFor(${i})" title="Edit credentials">✎</button>
+      ${u.username.toLowerCase()!=='admin' ? `<button class="action-btn del" onclick="removeUser(${i})" title="Remove">🗑</button>` : '<span style="width:28px"></span>'}
+    </div>`).join('');
+}
+
+function addUser() {
+  const name = document.getElementById('newUsername').value.trim();
+  const pass = document.getElementById('newPassword').value.trim();
+  const role = document.getElementById('newRole').value;
+  const err  = document.getElementById('addUserError');
+  if (!name || !pass) { err.textContent='Username and password are required.'; err.classList.add('show'); setTimeout(()=>err.classList.remove('show'),3000); return; }
+  if (users.find(u=>u.username.toLowerCase()===name.toLowerCase())) { err.textContent='Username already exists.'; err.classList.add('show'); setTimeout(()=>err.classList.remove('show'),3000); return; }
+  users.push({ username: name, password: pass, role });
+  persistUsers();
+  document.getElementById('newUsername').value='';
+  document.getElementById('newPassword').value='';
+  renderUserList();
+}
+
+function removeUser(i) {
+  if(users[i].username.toLowerCase()==='admin') return;
+  if(!confirm(`Remove user "${users[i].username}"?`)) return;
+  users.splice(i,1); persistUsers(); renderUserList();
+}
+
+// Close admin on overlay click
+document.getElementById('adminOverlay').addEventListener('click', e => { if(e.target.id==='adminOverlay') closeAdmin(); });
+document.getElementById('confirmOverlay').addEventListener('click', e => { if(e.target.id==='confirmOverlay') closeConfirm(); });
+document.getElementById('changePassOverlay').addEventListener('click', e => { if(e.target.id==='changePassOverlay') closeChangePass(); });
+
+// ── CHANGE CREDENTIALS ──
+let changePassTargetIdx = null; // null = current user, number = admin editing another user
+
+function openChangePass() {
+  changePassTargetIdx = null;
+  const u = users.find(x => x.username === currentUser.username);
+  document.getElementById('changePassSub').textContent = `Logged in as: ${currentUser.username}`;
+  document.getElementById('cpNewUsername').value = currentUser.username;
+  document.getElementById('cpCurrent').value = '';
+  document.getElementById('cpNew').value = '';
+  document.getElementById('cpConfirm').value = '';
+  document.getElementById('cpError').classList.remove('show');
+  document.getElementById('cpSuccess').classList.remove('show');
+  // Show current password field for self-edit
+  document.getElementById('cpCurrent').closest('.form-group').style.display = '';
+  document.getElementById('changePassOverlay').classList.add('open');
+}
+
+function openChangePassFor(idx) {
+  // Admin editing another user — no current password needed
+  changePassTargetIdx = idx;
+  const u = users[idx];
+  document.getElementById('changePassSub').textContent = `Editing: ${u.username}`;
+  document.getElementById('cpNewUsername').value = u.username;
+  document.getElementById('cpCurrent').value = '';
+  document.getElementById('cpNew').value = '';
+  document.getElementById('cpConfirm').value = '';
+  document.getElementById('cpError').classList.remove('show');
+  document.getElementById('cpSuccess').classList.remove('show');
+  // Hide current password field when admin edits others
+  document.getElementById('cpCurrent').closest('.form-group').style.display = idx === users.findIndex(x=>x.username===currentUser.username) ? '' : 'none';
+  document.getElementById('changePassOverlay').classList.add('open');
+}
+
+function closeChangePass() {
+  document.getElementById('changePassOverlay').classList.remove('open');
+  changePassTargetIdx = null;
+}
+
+function showCPError(msg) {
+  const el = document.getElementById('cpError');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3500);
+}
+function showCPSuccess(msg) {
+  const el = document.getElementById('cpSuccess');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>{ el.classList.remove('show'); closeChangePass(); }, 1800);
+}
+
+function saveChangePass() {
+  const newUsername = document.getElementById('cpNewUsername').value.trim();
+  const curPass     = document.getElementById('cpCurrent').value;
+  const newPass     = document.getElementById('cpNew').value;
+  const confPass    = document.getElementById('cpConfirm').value;
+
+  // Determine which user we're editing
+  const isSelfEdit  = changePassTargetIdx === null;
+  const targetIdx   = isSelfEdit ? users.findIndex(x=>x.username===currentUser.username) : changePassTargetIdx;
+  const targetUser  = users[targetIdx];
+
+  if (!newUsername) { showCPError('Username cannot be empty.'); return; }
+
+  // Check username conflict
+  const conflict = users.find((u,i) => u.username.toLowerCase()===newUsername.toLowerCase() && i!==targetIdx);
+  if (conflict) { showCPError('Username already taken.'); return; }
+
+  // If self-edit, verify current password
+  const curPassField = document.getElementById('cpCurrent').closest('.form-group');
+  if (curPassField.style.display !== 'none') {
+    if (curPass !== targetUser.password) { showCPError('Current password is incorrect.'); return; }
+  }
+
+  // If new password provided, validate it
+  if (newPass || confPass) {
+    if (newPass.length < 4) { showCPError('New password must be at least 4 characters.'); return; }
+    if (newPass !== confPass) { showCPError('Passwords do not match.'); return; }
+    targetUser.password = newPass;
+  }
+
+  // Update username
+  const oldUsername = targetUser.username;
+  targetUser.username = newUsername;
+
+  // If user changed their own username, update session
+  if (isSelfEdit || oldUsername === currentUser.username) {
+    currentUser.username = newUsername;
+    sessionStorage.setItem('ot_session', JSON.stringify(currentUser));
+    document.getElementById('userBadge').textContent = newUsername;
+  }
+
+  persistUsers();
+  if (document.getElementById('userList').children.length > 0) renderUserList();
+  showCPSuccess('Credentials updated successfully!');
+}
+
+// ── START ──
+// Check if already logged in from session
+if(currentUser) { initApp(); } else { document.getElementById('loginPage').classList.add('show'); }
+</script>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">
+      <div><div class="modal-title">Delete Order</div><div class="modal-subtitle">This action cannot be undone</div></div>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 28px">
+      <p style="font-size:14px;color:var(--text-mid);line-height:1.6" id="confirmMsg"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn" style="background:var(--red);color:white;border-color:var(--red)" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
