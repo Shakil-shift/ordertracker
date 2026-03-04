@@ -1341,16 +1341,16 @@ select option {
 
   <!-- VIEW TABS -->
   <div class="view-tabs">
-    <button class="view-tab active" id="tabOrders" onclick="switchView('orders')">📋 All Orders <span class="tab-badge" id="tabOrdersBadge">0</span></button>
-    <button class="view-tab" id="tabUpcoming" onclick="switchView('upcoming')">📅 Upcoming Tasks <span class="tab-badge" id="tabUpcomingBadge">0</span></button>
+    <button class="view-tab active" id="tabOrders" onclick="switchView('orders')">All Orders <span class="tab-badge" id="tabOrdersBadge">0</span></button>
+    <button class="view-tab" id="tabUpcoming" onclick="switchView('upcoming')">Upcoming Tasks <span class="tab-badge" id="tabUpcomingBadge">0</span></button>
   </div>
 
   <!-- UPCOMING VIEW -->
   <div id="upcomingView" style="display:none">
     <div class="upcoming-filters">
-      <button class="upcoming-filter-btn active" onclick="setUpcomingFilter('all', this)">📋 All</button>
-      <button class="upcoming-filter-btn filter-notsent" onclick="setUpcomingFilter('notsent', this)">📦 Not Sent</button>
-      <button class="upcoming-filter-btn filter-sent" onclick="setUpcomingFilter('sent', this)">✅ Sent</button>
+      <button class="upcoming-filter-btn active" onclick="setUpcomingFilter('all', this)"> All</button>
+      <button class="upcoming-filter-btn filter-notsent" onclick="setUpcomingFilter('notsent', this)">Not Sent</button>
+      <button class="upcoming-filter-btn filter-sent" onclick="setUpcomingFilter('sent', this)">Sent</button>
     </div>
     <div id="upcomingList"></div>
   </div>
@@ -1364,7 +1364,7 @@ select option {
     </div>
     <div class="week-search-wrap" onclick="event.stopPropagation()">
       <button class="week-search-btn" id="weekSearchBtn" onclick="toggleWeekSearch()">
-        📅 Search by Week <span class="week-active-badge" id="weekActiveBadge" style="display:none"></span>
+      Search by Week <span class="week-active-badge" id="weekActiveBadge" style="display:none"></span>
       </button>
       <div class="week-search-panel" id="weekSearchPanel">
         <div class="week-search-label">Filter by Week</div>
@@ -1423,14 +1423,14 @@ select option {
     <div class="month-result-title" id="monthResultTitle"></div>
     <div class="month-result-count" id="monthResultCount"></div>
     <div class="month-filter-btns">
-      <button class="month-filter-btn active" id="mfAll"    onclick="setMonthViewFilter('all',this)">📋 All Orders</button>
-      <button class="month-filter-btn"         id="mfSent"   onclick="setMonthViewFilter('sent',this)">✅ Sent</button>
-      <button class="month-filter-btn"         id="mfNotsent" onclick="setMonthViewFilter('notsent',this)">📦 Not Sent</button>
+      <button class="month-filter-btn active" id="mfAll"    onclick="setMonthViewFilter('all',this)">All Orders</button>
+      <button class="month-filter-btn"         id="mfSent"   onclick="setMonthViewFilter('sent',this)">Sent</button>
+      <button class="month-filter-btn"         id="mfNotsent" onclick="setMonthViewFilter('notsent',this)">Not Sent</button>
     </div>
     <div class="month-export-btns">
-      <button class="month-export-btn" onclick="monthExportExcel()">📊 Excel</button>
-      <button class="month-export-btn" onclick="monthPrint(false)">🖨 Print</button>
-      <button class="month-export-btn" onclick="monthPrint(true)">📄 PDF</button>
+      <button class="month-export-btn" onclick="monthExportExcel()">Excel</button>
+      <button class="month-export-btn" onclick="monthPrint(false)">Print</button>
+      <button class="month-export-btn" onclick="monthPrint(true)">PDF</button>
     </div>
   </div>
   <div class="table-wrap">
@@ -1539,8 +1539,8 @@ select option {
     <div class="modal-footer">
       <span class="detail-view-notice" id="detailNotice">Click Edit to make changes</span>
       <button class="btn btn-cancel" onclick="closeDetailModal()">Close</button>
-      <button class="detail-edit-btn" id="detailEditBtn" onclick="toggleDetailEdit()">✎ Edit</button>
-      <button class="btn btn-primary" id="detailSaveBtn" style="display:none" onclick="saveTestDetails()">💾 Save</button>
+      <button class="detail-edit-btn" id="detailEditBtn" onclick="toggleDetailEdit()">Edit</button>
+      <button class="btn btn-primary" id="detailSaveBtn" style="display:none" onclick="saveTestDetails()">Save</button>
     </div>
   </div>
 </div>
