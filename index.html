@@ -1,0 +1,3451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrderTrack</title>
+<meta name="description" content="Garment order and lab test management">
+<meta name="theme-color" content="#080b0f">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232dd4bf'/><text y='.9em' font-size='65' font-family='Arial' font-weight='bold' fill='%230d1117' x='12'>OT</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #080b0f; --s1: #0d1117; --s2: #161b22; --s3: #1c2330; --s4: #252d3a;
+  --b1: #21262d; --b2: #30363d; --b3: #444c56;
+  --teal: #2dd4bf; --teal-d: #14b8a6;
+  --teal-pale: rgba(45,212,191,.08);
+  --teal-glow: rgba(45,212,191,.15);
+  --teal-ring: rgba(45,212,191,.25);
+  --green: #34d399; --green-bg: rgba(52,211,153,.09); --green-br: rgba(52,211,153,.22);
+  --red: #fb7185;  --red-bg:  rgba(251,113,133,.09);  --red-br:  rgba(251,113,133,.22);
+  --amber: #fbbf24; --amber-bg: rgba(251,191,36,.09); --amber-br: rgba(251,191,36,.22);
+  --sky: #38bdf8;  --sky-bg:  rgba(56,189,248,.09);   --sky-br:  rgba(56,189,248,.22);
+  --t1: #e6edf3; --t2: #8b949e; --t3: #484f58;
+  --sans: 'Outfit', system-ui, sans-serif;
+  --mono: 'Space Mono', monospace;
+  --r: 9px; --rl: 14px; --rxl: 20px;
+  --sh:  0 1px 3px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.25);
+  --sh2: 0 4px 16px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.3);
+  --sh3: 0 8px 32px rgba(0,0,0,.6), 0 24px 64px rgba(0,0,0,.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5;}
+a{color:var(--teal);text-decoration:none;}
+input,select,textarea,button{font-family:var(--sans);}
+button{cursor:pointer;}
+/* Global select reset */
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px !important;cursor:pointer;}
+select option{background:var(--s2);color:var(--t1);}
+
+/* ===========================
+   MOBILE RESPONSIVE
+   =========================== */
+@media (max-width: 900px) {
+  .stats-bar{grid-template-columns:repeat(4,1fr);}
+}
+@media (max-width: 768px) {
+  header{padding:10px 14px;flex-wrap:wrap;gap:8px;}
+  .logo{font-size:16px;}
+  .header-actions{gap:6px;flex-wrap:wrap;}
+  .header-actions .btn{font-size:11px;padding:4px 8px;}
+  .notif-wrap{position:static;}
+  .notif-panel{position:fixed;top:60px;right:8px;left:8px;width:auto;max-height:70vh;}
+  main{padding:12px 10px;}
+  .stats-bar{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stat{padding:10px 12px;}
+  .stat-val{font-size:22px;}
+  .view-tabs{gap:6px;}
+  .view-tab{padding:7px 12px;font-size:12px;}
+  .toolbar{flex-wrap:wrap;gap:8px;row-gap:8px;}
+  .search-box{flex:1;min-width:160px;}
+  .week-search-btn,.month-search-btn{font-size:12px;padding:6px 12px;}
+  .week-search-wrap,.month-search-wrap{position:relative;}
+  .week-search-panel,.month-search-panel{position:fixed;top:auto;bottom:0;left:0;right:0;width:100%;border-radius:var(--rl) var(--rl) 0 0;z-index:800;padding:20px 16px 32px;}
+  .date-range-filter{flex-wrap:wrap;gap:6px;}
+  .date-range-filter .fp-input{width:110px;font-size:12px;}
+  .date-range-label{font-size:11px;}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{min-width:720px;}
+  .detail-grid{grid-template-columns:repeat(2,1fr);}
+  .modal{margin:8px;width:calc(100vw - 16px)!important;max-width:none!important;}
+  .modal-body{padding:16px 14px;}
+  .modal-header{padding:16px 14px;}
+  .test-rows-head,.test-row{grid-template-columns:1.4fr .8fr .8fr 1fr 1fr 1.2fr .8fr;font-size:11px;}
+  .retry-row{grid-template-columns:1fr 1fr 1fr 1fr;}
+  .upcoming-filters{flex-wrap:wrap;}
+  .check-grid{grid-template-columns:1fr;}
+  #notsentSubFilters{flex-wrap:wrap;}
+  .month-result-bar{flex-wrap:wrap;}
+  .month-result-actions{flex-wrap:wrap;}
+  .alerts-table-wrap{overflow-x:auto;}
+}
+@media (max-width: 480px) {
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  .detail-grid{grid-template-columns:1fr 1fr;}
+  .test-rows-head,.test-row{grid-template-columns:1.2fr .7fr 0 1fr 1fr 1.1fr .7fr;}
+  .test-rows-head > div:nth-child(3),.test-row > div:nth-child(3){display:none;}
+  header{padding:8px 10px;}
+  .view-tab{font-size:11px;padding:6px 10px;}
+  .btn-gold{font-size:12px;padding:7px 12px;}
+  .stat-val{font-size:20px;}
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--s1);}
+::-webkit-scrollbar-thumb{background:var(--b3);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--t3);}
+
+/* LOADING OVERLAY */
+#loadingOverlay{position:fixed;inset:0;background:rgba(2,5,10,.75);backdrop-filter:blur(8px);z-index:9000;display:none;align-items:center;justify-content:center;}
+#loadingOverlay.show{display:flex;}
+.loading-box{background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);padding:32px 40px;text-align:center;}
+.loading-spinner{width:44px;height:44px;border:3px solid var(--b2);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+.loading-text{color:var(--t2);font-size:14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* TOAST */
+#toastContainer{position:fixed;bottom:20px;right:20px;z-index:8000;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:var(--r);border:1px solid;font-size:13px;font-weight:600;box-shadow:var(--sh2);animation:toastIn .3s ease;max-width:360px;}
+.toast.success{background:var(--green-bg);border-color:var(--green-br);color:var(--green);}
+.toast.error{background:var(--red-bg);border-color:var(--red-br);color:var(--red);}
+.toast.info{background:var(--teal-pale);border-color:var(--teal-ring);color:var(--teal);}
+@keyframes toastIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* UNDO BAR */
+.undo-bar-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r);background:var(--s3);border:1px solid var(--b2);box-shadow:var(--sh2);font-size:13px;min-width:280px;position:relative;overflow:hidden;}
+.undo-bar-text{flex:1;color:var(--t1);}
+.undo-bar-time{color:var(--t3);font-size:11px;font-family:var(--mono);}
+.undo-btn{background:var(--teal-pale);color:var(--teal);border:1px solid var(--teal-ring);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.undo-btn:hover{background:var(--teal-glow);}
+.undo-dismiss{background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0 4px;}
+.undo-progress{position:absolute;bottom:0;left:0;height:2px;background:var(--teal);transition:width linear;}
+
+/* LOGIN */
+#loginPage{display:none;position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%, rgba(45,212,191,.08) 0%, var(--bg) 60%);align-items:center;justify-content:center;z-index:5000;padding:16px;}
+.login-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rxl);padding:40px 40px 36px;width:420px;max-width:100%;box-shadow:var(--sh3);}
+.login-logo{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px;font-size:24px;font-weight:800;color:var(--t1);}
+.login-tagline{text-align:center;color:var(--t2);font-size:13px;margin-bottom:28px;}
+
+/* Form */
+.login-form{display:flex;flex-direction:column;gap:12px;}
+.login-input-wrap{position:relative;}
+.login-input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--t3);}
+.login-input-wrap input{width:100%;padding:12px 14px 12px 42px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:14px;outline:none;transition:border-color .15s;}
+.login-input-wrap input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-ring);}
+.login-error{background:var(--red-bg);border:1px solid var(--red-br);color:var(--red);padding:10px 14px;border-radius:var(--r);font-size:13px;}
+.login-success{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--green);padding:10px 14px;border-radius:var(--r);font-size:13px;}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s;box-shadow:0 4px 14px rgba(99,102,241,.3);}
+.login-btn:hover{opacity:.9;}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;}
+.forgot-link{text-align:right;font-size:12px;color:var(--teal);cursor:pointer;margin-top:-4px;}
+.forgot-link:hover{text-decoration:underline;}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--s1);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100;gap:16px;}
+.logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;color:var(--t1);}
+.logo span{color:var(--teal);}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--teal),var(--teal-d));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#0d1117;flex-shrink:0;}
+.header-meta{color:var(--t3);font-size:12px;font-family:var(--mono);white-space:nowrap;}
+.user-badge{background:var(--teal-pale);border:1px solid var(--teal-ring);color:var(--teal);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+
+/* NOTIFICATION BELL */
+.notif-btn{position:relative;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:6px 10px;color:var(--t2);font-size:16px;cursor:pointer;transition:all .15s;}
+.notif-btn:hover{border-color:var(--b3);color:var(--t1);}
+.notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--s1);}
+.notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:340px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);box-shadow:var(--sh3);z-index:500;display:none;max-height:400px;overflow-y:auto;}
+.notif-panel.open{display:block;}
+.notif-panel-header{padding:12px 16px;border-bottom:1px solid var(--b1);font-size:13px;font-weight:700;color:var(--t1);}
+.notif-group-title{padding:8px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--b1);}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .12s;}
+.notif-item:hover{background:var(--s3);}
+.notif-item-icon{font-size:16px;margin-right:8px;}
+.notif-item-title{font-size:13px;font-weight:600;color:var(--t1);}
+.notif-item-sub{font-size:11px;color:var(--t2);margin-top:2px;}
+.notif-empty{padding:24px 16px;text-align:center;color:var(--t3);font-size:13px;}
+.notif-wrap{position:relative;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);border:1px solid;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-primary,.btn-gold{background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border-color:#6366f1;box-shadow:0 4px 14px rgba(99,102,241,.3);}
+.btn-primary:hover,.btn-gold:hover{opacity:.9;}
+.btn-cancel{background:transparent;color:var(--red);border-color:var(--red-br);}
+.btn-cancel:hover{background:var(--red-bg);border-color:var(--red);}
+.btn-ghost{background:var(--s2);color:var(--t2);border-color:var(--b2);}
+.btn-ghost:hover{border-color:var(--b3);color:var(--t1);}
+
+/* MAIN */
+main{padding:20px 24px;max-width:1800px;margin:0 auto;}
+
+/* STATS BAR */
+.stats-bar{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--s2);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;position:relative;overflow:hidden;transition:all .15s;}
+.stat-btn{cursor:pointer;}
+.stat-btn:hover{border-color:var(--b3);}
+.stat-top-bar{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--teal),var(--teal-d));}
+.stat-warn .stat-top-bar{background:linear-gradient(90deg,var(--amber),#f59e0b);}
+.stat-info .stat-top-bar{background:linear-gradient(90deg,var(--sky),#0ea5e9);}
+.stat-val{font-size:28px;font-weight:800;color:var(--t1);font-family:var(--mono);line-height:1;}
+.stat-label{font-size:12px;color:var(--t2);margin-top:4px;font-weight:600;}
+.stat-warn.active-filter{background:rgba(251,191,36,.18)!important;border-color:var(--amber)!important;box-shadow:0 0 0 2px rgba(251,191,36,.4),0 6px 20px rgba(251,191,36,.2)!important;}
+.stat-info.active-filter{background:rgba(56,189,248,.18)!important;border-color:var(--sky)!important;box-shadow:0 0 0 2px rgba(56,189,248,.4),0 6px 20px rgba(56,189,248,.2)!important;}
+.stat-danger .stat-top-bar{background:linear-gradient(90deg,var(--red),#f43f5e);}
+.stat-success .stat-top-bar{background:linear-gradient(90deg,var(--green),#10b981);}
+.stat-danger.active-filter{background:rgba(251,113,133,.12)!important;border-color:var(--red)!important;box-shadow:0 0 0 2px rgba(251,113,133,.3),0 6px 20px rgba(251,113,133,.15)!important;}
+.stat-success.active-filter{background:rgba(52,211,153,.12)!important;border-color:var(--green)!important;box-shadow:0 0 0 2px rgba(52,211,153,.3),0 6px 20px rgba(52,211,153,.15)!important;}
+.stat-btn.active-filter:not(.stat-warn):not(.stat-info):not(.stat-danger):not(.stat-success){background:var(--teal-pale)!important;border-color:var(--teal)!important;box-shadow:0 0 0 2px var(--teal-ring),0 6px 20px rgba(45,212,191,.15)!important;}
+
+/* VIEW TABS */
+.view-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.view-tab{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--r);border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.view-tab:hover{border-color:var(--b3);color:var(--t1);}
+.view-tab.active{background:linear-gradient(135deg,#6366f1 0%,#818cf8 100%);color:#fff;font-weight:700;box-shadow:0 4px 18px rgba(99,102,241,.3);border-color:#6366f1;}
+.tab-badge{background:rgba(255,255,255,.2);color:#fff;border-radius:10px;font-size:11px;font-weight:700;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;}
+.view-tab:not(.active) .tab-badge{background:var(--s3);color:var(--t2);}
+
+/* UPCOMING VIEW */
+#upcomingView{display:none;}
+.upcoming-filters{display:flex;gap:8px;margin-bottom:16px;}
+.upcoming-filter-btn{padding:7px 16px;border-radius:var(--r);border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.upcoming-filter-btn:hover{border-color:var(--b3);color:var(--t1);}
+.upcoming-filter-btn.active{background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border-color:#6366f1;box-shadow:0 4px 14px rgba(99,102,241,.3);}
+.upcoming-sub-btn{padding:5px 13px;border-radius:var(--r);border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.upcoming-sub-btn:hover{border-color:var(--b3);color:var(--t1);}
+.upcoming-sub-btn.active{background:var(--teal-pale);border-color:var(--teal-ring);color:var(--teal);}
+.upcoming-date-group{margin-bottom:20px;}
+.upcoming-date-header{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;padding:8px 0;border-bottom:1px solid var(--b1);margin-bottom:10px;}
+.upcoming-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+.upcoming-card{background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);padding:16px;cursor:pointer;transition:all .15s;border-left:3px solid var(--b2);}
+.upcoming-card:hover{border-color:var(--b3);box-shadow:var(--sh);}
+.upcoming-card.notsent{border-left-color:var(--red);}
+.upcoming-card.sent{border-left-color:var(--green);}
+.upcoming-card-test{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:6px;}
+.upcoming-card-info{font-size:12px;color:var(--t2);margin-bottom:8px;}
+.upcoming-card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.upcoming-card-days{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--s3);color:var(--t2);}
+.upcoming-card-days.overdue{background:var(--red-bg);color:var(--red);}
+.upcoming-card-days.today{background:var(--amber-bg);color:var(--amber);}
+.upcoming-card-days.soon{background:var(--teal-pale);color:var(--teal);}
+#upcomingList{min-height:100px;}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.search-box{position:relative;flex:1;min-width:180px;}
+.search-box input{width:100%;padding:9px 12px 9px 36px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:13px;outline:none;transition:border-color .15s;}
+.search-box input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-ring);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px;}
+
+/* WEEK SEARCH */
+.week-search-wrap,.month-search-wrap{position:relative;}
+.week-search-btn,.month-search-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.week-search-btn:hover,.month-search-btn:hover{border-color:var(--b3);color:var(--t1);}
+.week-active-badge,.month-active-badge{background:var(--teal);color:#0d1117;border-radius:10px;font-size:10px;font-weight:700;padding:2px 7px;}
+.week-search-panel,.month-search-panel{position:absolute;top:calc(100% + 8px);left:0;z-index:300;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);padding:16px;width:240px;box-shadow:var(--sh2);display:none;}
+.week-search-panel.open,.month-search-panel.open{display:block;}
+.week-search-label,.month-search-label{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
+.week-search-row,.month-search-row{display:flex;gap:8px;margin-bottom:10px;}
+.week-search-row input,.month-search-row input,.month-search-row select{flex:1;padding:8px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:13px;outline:none;}
+/* Hide browser number input spinners */
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
+.week-search-row input:focus,.month-search-row input:focus,.month-search-row select:focus{border-color:var(--teal);}
+.month-search-row select{background-color:var(--s3);border-color:var(--b2);color:var(--t1);}
+.week-search-actions,.month-search-actions{display:flex;gap:8px;}
+.week-clear-btn,.month-clear-btn{padding:7px 12px;border-radius:var(--r);border:1px solid var(--b2);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;}
+.week-clear-btn:hover,.month-clear-btn:hover{background:var(--s3);}
+
+/* DATE RANGE */
+.date-range-filter{display:flex;align-items:center;gap:6px;}
+.date-range-label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.date-range-sep{color:var(--t3);}
+.fp-input{padding:8px 10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:13px;outline:none;cursor:pointer;width:110px;}
+.fp-input:focus{border-color:var(--teal);}
+.btn-clear-range{background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:4px;border-radius:4px;transition:color .15s;}
+.btn-clear-range:hover{color:var(--red);}
+.hl{background:rgba(45,212,191,.22);color:var(--teal);border-radius:3px;padding:0 2px;font-weight:700;}
+
+/* MONTH RESULT BAR */
+.month-result-bar{display:none;align-items:center;gap:16px;padding:12px 16px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);margin-bottom:14px;flex-wrap:wrap;}
+.month-result-bar.visible{display:flex;}
+.month-result-title{font-size:14px;font-weight:700;color:var(--t1);}
+.month-result-count{font-size:13px;color:var(--t2);}
+.month-filter-btns{display:flex;gap:6px;}
+.month-filter-btn{padding:6px 14px;border-radius:var(--r);border:1px solid var(--b2);background:var(--s3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.month-filter-btn.active{background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border-color:#6366f1;}
+.month-export-btns{display:flex;gap:6px;margin-left:auto;}
+.month-export-btn{padding:6px 12px;border-radius:var(--r);border:1px solid var(--b2);background:var(--s3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.month-export-btn:hover{border-color:var(--b3);color:var(--t1);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:var(--rl);border:1px solid var(--b1);background:var(--s1);}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+thead{position:sticky;top:0;z-index:10;}
+th{background:var(--s2);padding:12px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--b1);white-space:nowrap;}
+th:first-child{border-radius:var(--rl) 0 0 0;}
+th:last-child{border-radius:0 var(--rl) 0 0;}
+td{padding:12px 14px;border-bottom:1px solid var(--b1);vertical-align:middle;font-size:13px;color:var(--t1);}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background .1s;}
+tbody tr:hover{background:var(--s2);}
+.order-num{font-family:var(--mono);font-weight:700;color:var(--teal);font-size:13px;letter-spacing:-.01em;}
+.ship-group-header td{background:var(--s2)!important;color:var(--t3);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px!important;}
+
+/* TEST CHIPS */
+.test-chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--b2);background:var(--s3);color:var(--t2);}
+.test-chip.pass{background:var(--green-bg);color:var(--green);border-color:var(--green-br);}
+.test-chip.fail{background:var(--red-bg);color:var(--red);border-color:var(--red-br);}
+.test-chip.sent{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-br);}
+.test-chip.cs{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-br);}
+.test-chip.stat-hl{box-shadow:0 0 0 2px currentColor, 0 0 8px rgba(255,255,255,.15);font-weight:700;transform:scale(1.04);}
+.tests-cell{display:flex;flex-wrap:wrap;gap:4px;}
+
+/* 3-DOT MENU */
+.row-menu-btn{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .15s;line-height:1;}
+.row-menu-btn:hover{background:var(--s3);color:var(--t1);}
+.row-menu-dropdown{position:fixed;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);padding:6px;box-shadow:var(--sh3);z-index:9999;min-width:180px;display:none;}
+.row-menu-dropdown.open{display:block;}
+.row-menu-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;}
+.row-menu-item:hover{background:var(--s3);}
+.row-menu-item.danger{color:var(--red);}
+.row-menu-item.danger:hover{background:var(--red-bg);}
+
+/* CHECKBOX */
+input[type=checkbox]{accent-color:var(--teal);cursor:pointer;width:14px;height:14px;}
+#selectionLabel{font-size:13px;color:var(--t2);font-weight:600;}
+
+/* MODAL OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(2,5,10,.8);backdrop-filter:blur(6px);z-index:1000;overflow-y:auto;display:none;align-items:flex-start;justify-content:center;padding:20px;}
+#detailOverlay{z-index:1100;}
+#alertsOverlay{z-index:1050;}
+.overlay.open{display:flex;}
+.modal{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rxl);box-shadow:var(--sh3);max-height:calc(100vh - 40px);overflow-y:auto;width:980px;margin:auto;}
+.modal-lg{width:1200px;}
+.modal-add{width:1020px;}
+.modal-md{width:480px;}
+.modal-sm{width:380px;}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:24px 28px;border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--s1);z-index:5;}
+.modal-title{font-size:20px;font-weight:800;color:var(--t1);}
+.modal-subtitle{font-size:13px;color:var(--t2);margin-top:4px;}
+.modal-close{background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:4px;border-radius:6px;line-height:1;transition:color .15s;}
+.modal-close:hover{color:var(--red);}
+.modal-body{padding:24px 28px;}
+.modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 28px;border-top:1px solid var(--b1);position:sticky;bottom:0;background:var(--s1);}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;}
+.form-group input,.form-group select,.form-group textarea{padding:10px 12px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:13px;outline:none;transition:border-color .15s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-ring);}
+.form-group textarea{resize:none;}
+.section-label{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;padding:14px 0 10px;border-top:1px solid var(--b1);margin-top:8px;}
+
+/* CHECK GRID */
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.check-item{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);transition:border-color .15s;}
+.check-item:hover{border-color:var(--b3);}
+.check-item input[type=checkbox]:checked ~ .check-label{color:var(--teal);}
+.check-label{font-size:13px;color:var(--t1);flex:1;}
+.check-date{margin-left:auto;}
+.check-date input{padding:6px 10px;background:var(--s3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:12px;outline:none;width:120px;}
+.check-date input:focus{border-color:var(--teal);}
+
+/* COLOR TAG INPUT */
+.tag-input-wrap{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:40px;padding:6px 10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);cursor:text;transition:border-color .15s;}
+.tag-input-wrap:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-ring);}
+.color-tag{display:inline-flex;align-items:center;gap:5px;background:var(--teal-pale);border:1px solid var(--teal-ring);color:var(--teal);border-radius:20px;padding:2px 10px 2px 10px;font-size:12px;font-weight:600;white-space:nowrap;}
+.color-tag-remove{background:none;border:none;color:var(--teal);cursor:pointer;font-size:14px;padding:0;line-height:1;opacity:.7;margin-left:2px;}
+.color-tag-remove:hover{opacity:1;color:var(--red);}
+.tag-text-input{border:none;background:none;outline:none;color:var(--t1);font-size:13px;font-family:var(--sans);min-width:120px;flex:1;padding:2px 0;}
+.tag-text-input::placeholder{color:var(--t3);}
+.color-tags-display{display:flex;flex-wrap:wrap;gap:4px;}
+.color-tag-pill{display:inline-block;background:var(--teal-pale);border:1px solid var(--teal-ring);color:var(--teal);border-radius:20px;padding:1px 8px;font-size:11px;font-weight:600;}
+
+/* AUTOCOMPLETE */
+.autocomplete-wrap{position:relative;}
+.autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;z-index:400;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);max-height:200px;overflow-y:auto;display:none;box-shadow:var(--sh2);}
+.autocomplete-dropdown.show{display:block;}
+.ac-item{padding:8px 12px;cursor:pointer;font-size:13px;}
+.ac-item:hover,.ac-item.active{background:var(--s3);color:var(--teal);}
+
+/* DETAIL MODAL */
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.detail-field{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;}
+.detail-field-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.detail-field-val{font-size:14px;color:var(--t1);font-weight:600;word-break:break-word;}
+.test-rows-head{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.2fr 1.2fr 1.4fr 1fr;gap:1px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r) var(--r) 0 0;padding:10px 14px;margin-bottom:1px;}
+.test-rows-head > div{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;}
+.test-rows{display:flex;flex-direction:column;gap:1px;}
+.test-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.2fr 1.2fr 1.4fr 1fr;gap:1px;background:var(--s2);border:1px solid var(--b1);padding:10px 14px;transition:background .1s;}
+.test-row:last-child{border-radius:0 0 var(--r) var(--r);}
+.test-row.cs-row{border-left:3px solid var(--amber);}
+.test-row.highlighted{background:rgba(99,102,241,.12)!important;border-color:#6366f1!important;border-left:3px solid #6366f1!important;box-shadow:0 0 0 1px rgba(99,102,241,.3);}
+.test-row.highlighted .test-row-name{color:#818cf8;font-weight:700;}
+.test-row.cs-row.cs-received{border-left:3px solid var(--green);background:var(--green-bg);}
+.test-row.cs-row.cs-overdue{border-left:3px solid var(--red);background:var(--red-bg);}
+.test-row > div{font-size:13px;color:var(--t1);display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
+.cs-mandatory-badge{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-br);border-radius:10px;font-size:9px;font-weight:700;padding:2px 6px;text-transform:uppercase;}
+.cs-received .cs-mandatory-badge{background:var(--green-bg);color:var(--green);border-color:var(--green-br);}
+.cs-overdue  .cs-mandatory-badge{background:var(--red-bg);color:var(--red);border-color:var(--red-br);}
+.cs-received .deadline-badge{background:var(--green-bg);color:var(--green);border-color:var(--green-br);}
+.cs-overdue  .deadline-badge{background:var(--red-bg);color:var(--red);border-color:var(--red-br);}
+.week-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:var(--teal-pale);color:var(--teal);border:1px solid var(--teal-ring);}
+.deadline-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-br);}
+.sent-indicator{color:var(--green);font-size:11px;font-weight:700;}
+.all-sent-badge{background:var(--green-bg);color:var(--green);border:1px solid var(--green-br);border-radius:10px;font-size:10px;font-weight:700;padding:2px 7px;}
+.detail-edit-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);border:1px solid var(--teal-ring);background:var(--teal-pale);color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.detail-edit-btn:hover{background:var(--teal-glow);}
+.detail-view-notice{font-size:12px;color:var(--t3);margin-right:auto;}
+.test-row select,.test-row input.fp-input-sm{padding:6px 10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:12px;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;transition:border-color .15s;}
+.test-row select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px;}
+.test-row select:focus,.test-row input.fp-input-sm:focus{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-ring);}
+.test-row select option{background:var(--s2);color:var(--t1);}
+.fp-input-sm{width:115px;}
+/* Result-specific select colors */
+.test-row select.res-pass{background-color:var(--green-bg);border-color:var(--green-br);color:var(--green);}
+.test-row select.res-fail{background-color:var(--red-bg);border-color:var(--red-br);color:var(--red);}
+.test-row select.res-pending{background-color:var(--s2);border-color:var(--b2);color:var(--t2);}
+/* Retry section selects */
+.retry-row select{padding:6px 28px 6px 10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:12px;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;transition:border-color .15s;}
+.retry-row select:focus{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-ring);}
+.retry-row select.res-pass{background-color:var(--green-bg);border-color:var(--green-br);color:var(--green);}
+.retry-row select.res-fail{background-color:var(--red-bg);border-color:var(--red-br);color:var(--red);}
+.retry-row select.res-pending{background-color:var(--s2);border-color:var(--b2);color:var(--t2);}
+
+/* RETRY SECTION */
+.retry-section{background:var(--red-bg);border:1px solid var(--red-br);border-radius:var(--rl);padding:16px;margin-top:16px;}
+.retry-section-label{font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.retry-rows{display:flex;flex-direction:column;gap:10px;}
+.retry-row{display:grid;grid-template-columns:1.6fr 1.2fr 1.4fr 1fr;gap:12px;align-items:center;}
+.retry-row label{font-size:12px;color:var(--t2);font-weight:600;}
+
+/* ADMIN / CONFIRM MODALS */
+.user-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.user-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);}
+.user-item-name{flex:1;font-size:13px;font-weight:600;color:var(--t1);}
+.user-item-role{font-size:11px;padding:2px 8px;border-radius:10px;}
+.user-item-role.admin{background:var(--teal-pale);color:var(--teal);border:1px solid var(--teal-ring);}
+.user-item-role.user{background:var(--s3);color:var(--t2);border:1px solid var(--b2);}
+.add-user-form{display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:1px solid var(--b1);}
+.add-user-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* CONFIRM DELETE */
+.confirm-body{padding:24px 28px;text-align:center;}
+.confirm-icon{font-size:40px;margin-bottom:12px;}
+.confirm-title{font-size:17px;font-weight:700;color:var(--t1);margin-bottom:6px;}
+.confirm-sub{font-size:13px;color:var(--t2);}
+
+/* FLATPICKR OVERRIDES */
+.flatpickr-calendar{background:var(--s2)!important;border:1px solid var(--b2)!important;box-shadow:var(--sh3)!important;border-radius:var(--rl)!important;}
+.flatpickr-day{color:var(--t1)!important;}
+.flatpickr-day.selected,.flatpickr-day.selected:hover{background:var(--teal)!important;border-color:var(--teal)!important;color:#0d1117!important;}
+.flatpickr-day:hover{background:var(--s3)!important;}
+.flatpickr-months .flatpickr-month{background:var(--s2)!important;color:var(--t1)!important;}
+.flatpickr-weekday{color:var(--t3)!important;}
+.flatpickr-current-month{color:var(--t1)!important;}
+.flatpickr-current-month input.cur-year{color:var(--t1)!important;}
+span.flatpickr-weekday{color:var(--t3)!important;}
+.flatpickr-day.flatpickr-disabled{color:var(--t3)!important;opacity:.4;}
+.flatpickr-day.today{border-color:var(--teal)!important;}
+.flatpickr-prev-month,.flatpickr-next-month{fill:var(--t2)!important;}
+.flatpickr-footer{display:flex;gap:6px;padding:8px;border-top:1px solid var(--b1);}
+.fp-today-btn,.fp-clear-btn{flex:1;padding:6px;border-radius:6px;border:1px solid var(--b2);background:var(--s3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;}
+.fp-today-btn:hover{border-color:var(--teal);color:var(--teal);}
+.fp-clear-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--t3);}
+.empty-state-icon{font-size:40px;margin-bottom:12px;}
+.empty-state-title{font-size:16px;font-weight:700;color:var(--t2);margin-bottom:6px;}
+.empty-state-sub{font-size:13px;}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .stats-bar{grid-template-columns:repeat(4,1fr);}
+}
+@media (max-width: 900px) {
+  .stats-bar{grid-template-columns:repeat(3,1fr);}
+  .form-grid{grid-template-columns:1fr 1fr;}
+  .detail-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading OrderTrack…</div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer"></div>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">OT</div>
+      <span>Order</span>&nbsp;Track
+    </div>
+    <div class="login-tagline">Sign in to continue</div>
+    <div class="login-form">
+      <div class="login-input-wrap">
+        <span class="login-input-icon" style="font-size:13px">✉</span>
+        <input type="text" id="authEmail" placeholder="Email or username" autocomplete="username" onkeydown="if(event.key==='Enter')doEmailAuth()">
+      </div>
+      <div class="login-input-wrap">
+        <span class="login-input-icon">#</span>
+        <input type="password" id="authPass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doEmailAuth()">
+      </div>
+      <div id="forgotWrap" class="forgot-link" onclick="doForgotPassword()">Forgot password?</div>
+      <div id="authMsg" style="display:none"></div>
+      <button class="login-btn" id="authSubmitBtn" onclick="doEmailAuth()">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="overlay" id="adminOverlay">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">User Management</div>
+        <div class="modal-subtitle">Manage system users and roles</div>
+      </div>
+      <button class="modal-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="user-list" id="userList"></div>
+      <div class="add-user-form">
+        <div class="section-label" style="margin-top:0;padding-top:0;border:none;">Add New User</div>
+        <div class="add-user-form-row">
+          <div class="form-group"><label>Username</label><input type="text" id="nu_user" placeholder="Username"></div>
+          <div class="form-group"><label>Password</label><input type="password" id="nu_pass" placeholder="Password"></div>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="nu_role">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="addUser()">＋ Add User</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeAdmin()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD -->
+<div class="overlay" id="changePassOverlay">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">My Account</div>
+        <div class="modal-subtitle">Update your username or password</div>
+      </div>
+      <button class="modal-close" onclick="closeChangePass()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- ACCOUNT INFO -->
+      <div class="section-label" style="margin-top:0;padding-top:0;border:none;margin-bottom:12px;">Account Info</div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Email</label>
+        <input type="text" id="cp_email" readonly style="opacity:.6;cursor:not-allowed;">
+      </div>
+
+      <!-- DISPLAY NAME SECTION -->
+      <div class="section-label" style="margin-bottom:12px;">Display Name</div>
+      <div class="form-group" style="margin-bottom:6px;">
+        <label>Current Name</label>
+        <input type="text" id="cp_cur_user" readonly style="opacity:.6;cursor:not-allowed;">
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>New Display Name</label>
+        <input type="text" id="cp_new_user" placeholder="Enter new display name">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:20px;" onclick="saveChangeUsername()">Save Display Name</button>
+
+      <!-- PASSWORD SECTION -->
+      <div class="section-label" style="margin-bottom:12px;">Change Password</div>
+      <div class="form-group" style="margin-bottom:6px;">
+        <label>New Password</label>
+        <input type="password" id="cp_new" placeholder="Enter new password">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Confirm New Password</label>
+        <input type="password" id="cp_confirm" placeholder="Confirm new password">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeChangePass()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveChangePass()">Save Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT ORDER MODAL -->
+<div class="overlay" id="addOverlay">
+  <div class="modal modal-add">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="addTitle">Add New Order</div>
+        <div class="modal-subtitle">Fill in details and select test requirements</div>
+      </div>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Order Number</label>
+          <input type="text" id="f_num" placeholder="e.g. ORD-1024">
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="f_dept" placeholder="e.g. 7655, 6565, 5686">
+        </div>
+        <div class="form-group">
+          <label>Style</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="f_style" placeholder="e.g. Bomber Jacket" autocomplete="off"
+              oninput="styleAC(this)" onfocus="styleAC(this)" onkeydown="styleKeyNav(event)" onblur="setTimeout(closeStyleAC,150)">
+            <div class="autocomplete-dropdown" id="styleDropdown"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Color <span style="font-size:11px;color:var(--t3);font-weight:400;">— press Enter or comma to add</span></label>
+          <div class="tag-input-wrap" id="colorTagWrap" onclick="document.getElementById('colorTagInput').focus()">
+            <input type="text" id="colorTagInput" class="tag-text-input" placeholder="e.g. Khaki Green Dark…"
+              onkeydown="colorTagKeyDown(event)" oninput="colorTagOnInput(event)">
+          </div>
+          <input type="hidden" id="f_color">
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <input type="text" id="f_season" placeholder="e.g. 4-2026">
+        </div>
+        <div class="form-group">
+          <label>First TOD</label>
+          <input type="text" class="fp-input" id="f_tod" placeholder="Select date" readonly>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="f_notes" rows="2" style="height:52px;resize:none"></textarea>
+      </div>
+      <div class="section-label">Test Requirements</div>
+      <div class="check-grid" id="checkGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="dTitle">Order Details</div>
+        <div class="modal-subtitle" id="dSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="dInfo"></div>
+      <div class="section-label">Test Requirements — Sending &amp; Report Details</div>
+      <div class="test-rows-head">
+        <div>Test Name</div>
+        <div>TOD</div>
+        <div>TOD Week</div>
+        <div>Shipment Date</div>
+        <div>Garment Sent Date</div>
+        <div>Report Received Date</div>
+        <div>Result</div>
+      </div>
+      <div class="test-rows" id="dTests"></div>
+      <div id="dRetrySection"></div>
+    </div>
+    <div class="modal-footer">
+      <span class="detail-view-notice" id="detailNotice">Click Edit to make changes</span>
+      <button class="btn btn-cancel" onclick="closeDetailModal()">Close</button>
+      <button class="detail-edit-btn" id="detailEditBtn" onclick="toggleDetailEdit()">Edit</button>
+      <button class="btn btn-primary" id="detailSaveBtn" style="display:none" onclick="saveTestDetails()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Confirm Delete</div>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="confirm-body">
+      <div class="confirm-icon">!</div>
+      <div class="confirm-title">Delete this order?</div>
+      <div class="confirm-sub" id="confirmSub">This action can be undone within 15 seconds.</div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;">
+      <button class="btn btn-cancel" onclick="doDelete()" id="confirmDeleteBtn">Delete</button>
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+<header>
+  <div class="logo">
+    <div class="logo-icon">OT</div>Order<span>Track</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+    <div class="header-meta" id="dateDisplay"></div>
+    <span class="user-badge" id="userBadge"></span>
+    <button class="btn btn-ghost" id="adminBtn" onclick="openAdmin()" style="display:none;font-size:12px;padding:5px 10px;">Users</button>
+    <button class="btn btn-ghost" id="myAccountBtn" onclick="openChangePass()" style="display:none;font-size:12px;padding:5px 10px;">Account</button>
+    <div class="notif-wrap" onclick="event.stopPropagation()">
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()"><span style="font-size:13px;font-weight:700;">Alerts</span><span class="notif-badge" id="notifBadge" style="display:none">0</span></button>
+      <div class="notif-panel" id="notifPanel"></div>
+    </div>
+    <button class="btn btn-cancel" onclick="doSignOut()" style="font-size:12px;padding:5px 10px;">Sign Out</button>
+  </div>
+</header>
+
+<main>
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat stat-btn" id="btnTotal" title="Show all orders" onclick="toggleStatFilter('total')"><div class="stat-top-bar"></div><div class="stat-val" id="sTotal">0</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat stat-btn" id="btnTests" title="Filter by total tests" onclick="toggleStatFilter('tests')"><div class="stat-top-bar"></div><div class="stat-val" id="sTests">0</div><div class="stat-label">Total Tests</div></div>
+    <div class="stat stat-btn stat-danger" id="btnPending" title="Filter by result pending" onclick="toggleStatFilter('pending')"><div class="stat-top-bar"></div><div class="stat-val" id="sPending" style="color:var(--red)">0</div><div class="stat-label">Result Pending</div></div>
+    <div class="stat stat-btn stat-success" id="btnPass" title="Filter by passed" onclick="toggleStatFilter('pass')"><div class="stat-top-bar"></div><div class="stat-val" id="sPass">0</div><div class="stat-label">Passed</div></div>
+    <div class="stat stat-btn stat-danger" id="btnFail" title="Filter by failed" onclick="toggleStatFilter('fail')"><div class="stat-top-bar"></div><div class="stat-val" id="sFail" style="color:var(--red)">0</div><div class="stat-label">Failed</div></div>
+    <div class="stat stat-warn stat-btn" id="btnSendPending" title="Filter by sending pending" onclick="toggleStatFilter('send')">
+      <div class="stat-top-bar"></div>
+      <div class="stat-val" id="sSendPending" style="color:var(--red)">0</div>
+      <div class="stat-label">Sending Pending</div>
+    </div>
+  </div>
+
+  <!-- VIEW TABS -->
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabOrders" onclick="switchView('orders')">All Orders <span class="tab-badge" id="tabOrdersBadge">0</span></button>
+    <button class="view-tab" id="tabUpcoming" onclick="switchView('upcoming')">Upcoming Tasks <span class="tab-badge" id="tabUpcomingBadge">0</span></button>
+  </div>
+
+  <!-- UPCOMING VIEW -->
+  <div id="upcomingView" style="display:none">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;justify-content:space-between;">
+      <div class="upcoming-filters" style="margin-bottom:0">
+        <button class="upcoming-filter-btn active" id="ufAll" onclick="setUpcomingFilter('all',this)">All</button>
+        <button class="upcoming-filter-btn" id="ufNotsent" onclick="setUpcomingFilter('notsent',this)">Not Sent</button>
+        <button class="upcoming-filter-btn" id="ufSent" onclick="setUpcomingFilter('sent',this)">Sent</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="upcomingCount" style="font-size:12px;color:var(--t3);font-weight:600;"></span>
+        <button class="btn btn-ghost" onclick="exportUpcomingExcel()" title="Export to Excel" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel
+        </button>
+        <button class="btn btn-ghost" onclick="printUpcoming(false)" title="Print" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+        <button class="btn btn-ghost" onclick="printUpcoming(true)" title="Save as PDF" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          PDF
+        </button>
+      </div>
+    </div>
+    <!-- UPCOMING SEARCH -->
+    <div class="search-box" style="margin-bottom:12px;">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="upcomingSearchInput" placeholder="Search by order #, style, color, test name…" oninput="upcomingSearch=this.value.trim();renderUpcoming()">
+    </div>
+    <div id="notsentSubFilters" style="display:none;margin-bottom:14px;gap:6px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-right:4px;">Show:</span>
+      <button class="upcoming-sub-btn" id="usfAll" onclick="setNotsentRange('all',this)">All</button>
+      <button class="upcoming-sub-btn active" id="usfWeek1" onclick="setNotsentRange('week1',this)">Next 1 Week</button>
+      <button class="upcoming-sub-btn" id="usfDays15" onclick="setNotsentRange('days15',this)">Next 15 Days</button>
+      <button class="upcoming-sub-btn" id="usfMonth1" onclick="setNotsentRange('month1',this)">Next 1 Month</button>
+    </div>
+    <div id="upcomingList"></div>
+  </div>
+
+  <!-- ORDERS VIEW -->
+  <div id="ordersView">
+    <div class="toolbar">
+      <button class="btn btn-gold" onclick="openAddModal()">＋ Add Order</button>
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" placeholder="Search orders…" oninput="renderTable()">
+      </div>
+      <!-- WEEK SEARCH -->
+      <div class="week-search-wrap" onclick="event.stopPropagation()">
+        <button class="week-search-btn" id="weekSearchBtn" onclick="toggleWeekSearch()">
+          Search by Week <span class="week-active-badge" id="weekActiveBadge" style="display:none"></span>
+        </button>
+        <div class="week-search-panel" id="weekSearchPanel">
+          <div class="week-search-label">FILTER BY WEEK</div>
+          <div class="week-search-row">
+            <input type="number" id="weekNumInput" placeholder="W#" min="1" max="53" style="width:70px;flex:none;" inputmode="numeric">
+            <input type="number" id="weekYearInput" placeholder="Year" min="1900" max="9999" style="flex:1" inputmode="numeric">
+          </div>
+          <div class="week-search-actions">
+            <button class="btn btn-primary" style="flex:1;padding:7px" onclick="applyWeekFilter()">Apply</button>
+            <button class="week-clear-btn" onclick="clearWeekFilter()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <!-- MONTH SEARCH -->
+      <div class="month-search-wrap" onclick="event.stopPropagation()">
+        <button class="month-search-btn" id="monthSearchBtn" onclick="toggleMonthSearch()">
+          Search by Month <span class="month-active-badge" id="monthActiveBadge" style="display:none"></span>
+        </button>
+        <div class="month-search-panel" id="monthSearchPanel">
+          <div class="month-search-label">Filter by Month</div>
+          <div class="month-search-row">
+            <select id="monthMonthInput">
+              <option value="">Month</option>
+              <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+              <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+              <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+            </select>
+            <select id="monthYearInput"></select>
+          </div>
+          <div class="month-search-actions">
+            <button class="btn btn-primary" style="flex:1;padding:7px" onclick="applyMonthFilter()">Apply</button>
+            <button class="month-clear-btn" onclick="clearMonthFilter()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <!-- DATE RANGE -->
+      <div class="date-range-filter">
+        <span class="date-range-label">Test TOD</span>
+        <input type="text" class="fp-input" id="filterFrom" placeholder="From" readonly>
+        <span class="date-range-sep">→</span>
+        <input type="text" class="fp-input" id="filterTo" placeholder="To" readonly>
+        <button class="btn-clear-range" id="clearRangeBtn" onclick="clearDateRange()" title="Clear" style="display:none">✕</button>
+      </div>
+      <!-- RIGHT SIDE -->
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <span id="selectionLabel" style="display:none;font-size:13px;color:var(--t2);font-weight:600;"></span>
+        <button class="btn btn-ghost" id="exportBtn" onclick="exportExcel()" style="display:none">Export</button>
+        <button class="btn btn-ghost" id="printBtn" onclick="printOrders()" style="display:none">Print</button>
+      </div>
+    </div>
+    <!-- MONTH RESULT BAR -->
+    <div class="month-result-bar" id="monthResultBar">
+      <div class="month-result-title" id="monthResultTitle"></div>
+      <div class="month-result-count" id="monthResultCount"></div>
+      <div class="month-filter-btns">
+        <button class="month-filter-btn active" id="mfAll" onclick="setMonthViewFilter('all',this)">All Orders</button>
+        <button class="month-filter-btn" id="mfSent" onclick="setMonthViewFilter('sent',this)">Sent</button>
+        <button class="month-filter-btn" id="mfNotsent" onclick="setMonthViewFilter('notsent',this)">Not Sent</button>
+      </div>
+      <div class="month-export-btns">
+        <button class="month-export-btn" onclick="monthExportExcel()">Excel</button>
+        <button class="month-export-btn" onclick="monthPrint(false)">Print</button>
+        <button class="month-export-btn" onclick="monthPrint(true)">PDF</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="theadRow">
+            <th style="width:36px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="accent-color:var(--teal);cursor:pointer;width:14px;height:14px"></th>
+            <th>Order #</th>
+            <th>Department</th>
+            <th>Style</th>
+            <th>Color</th>
+            <th>Season</th>
+            <th>First TOD</th>
+            <th>Test Requirements</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</main>
+</div><!-- /mainApp -->
+
+<!-- VIEW ALL ALERTS MODAL -->
+<div class="overlay" id="alertsOverlay">
+  <div class="modal" style="max-width:900px;width:95vw;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="alertsModalTitle">All Alerts</div>
+        <div class="modal-subtitle" id="alertsModalSub"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" onclick="exportAlertsExcel()">Export Excel</button>
+        <button class="modal-close" onclick="closeAlertsModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;padding:0;">
+      <table style="width:100%;border-collapse:collapse;" id="alertsTable">
+        <thead id="alertsThead"></thead>
+        <tbody id="alertsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Row menu dropdown (singleton) -->
+<div class="row-menu-dropdown" id="rowMenu">
+  <div class="row-menu-item" onclick="menuAction('edit')">Edit Order</div>
+  <div class="row-menu-item" onclick="menuAction('excel')">Export as Excel</div>
+  <div class="row-menu-item" onclick="menuAction('print')">Print</div>
+  <div class="row-menu-item" onclick="menuAction('pdf')">Save as PDF</div>
+  <div class="row-menu-item danger" onclick="menuAction('delete')">Delete</div>
+</div>
+
+<script>
+// ===========================
+// SUPABASE INIT
+// ===========================
+const SUPABASE_URL  = 'https://oiycwxqymcuaaxqpmuch.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9peWN3eHF5bWN1YWF4cXBtdWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NDEyMDksImV4cCI6MjA4ODUxNzIwOX0.WuhgLbDP2AxfU5b78Sp_EVmcaLl7KWJZfGKW7TljtUU';
+const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// localStorage fallback keys (orders still use LS until Supabase tables are set up)
+const LS_ORDERS = 'ot_orders';
+const LS_USERS  = 'ot_users';
+
+function _lsGet(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
+}
+function _lsSet(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+// No-op — users now managed by Supabase Auth
+function seedDefaultUsers() {}
+
+function _showAuthMsg(msg, type) {
+  const el = document.getElementById('authMsg');
+  el.className = type === 'error' ? 'login-error' : 'login-success';
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function doEmailAuth() {
+  let identifier = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  if (!identifier || !pass) { _showAuthMsg('Please enter your email/username and password.', 'error'); return; }
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    // If input has no @, treat as username — look up the email via admin API
+    // We store username in user_metadata.display_name, but we can't query users
+    // from the client without service role. So we use a fallback:
+    // Try signing in directly (works if they typed email), or show helpful error.
+    let email = identifier;
+    if (!identifier.includes('@')) {
+      // Attempt to resolve username → email via a stored mapping in localStorage
+      const usernameMap = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
+      if (usernameMap[identifier.toLowerCase()]) {
+        email = usernameMap[identifier.toLowerCase()];
+      } else {
+        _showAuthMsg('Username not found. Please sign in with your email address instead.', 'error');
+        btn.disabled = false; btn.textContent = 'Sign In';
+        return;
+      }
+    }
+    const { data, error } = await _supa.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    // On successful login, store username→email mapping for future use
+    const displayName = data.user.user_metadata?.display_name;
+    if (displayName) {
+      const map = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
+      map[displayName.toLowerCase()] = data.user.email;
+      localStorage.setItem('ot_username_map', JSON.stringify(map));
+    }
+    await _onSignedIn(data.user);
+  } catch(e) {
+    let msg = e.message || 'Sign in failed.';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) msg = 'Connection error. Check your internet and try again.';
+    if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) msg = 'Invalid email/username or password.';
+    if (msg.includes('Email not confirmed')) msg = 'Please confirm your email first, then try again.';
+    _showAuthMsg(msg, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('authEmail').value.trim();
+  if (!email) { _showAuthMsg('Enter your email above first.', 'error'); return; }
+  const { error } = await _supa.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  if (error) _showAuthMsg(error.message, 'error');
+  else _showAuthMsg('Password reset email sent! Check your inbox.', 'success');
+}
+
+async function _onSignedIn(user) {
+  const displayName = user.user_metadata?.display_name || user.email.split('@')[0];
+  currentUser = {
+    id: user.id,
+    username: displayName,
+    email: user.email,
+    role: 'user'
+  };
+  // Keep username→email map updated
+  const map = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
+  map[displayName.toLowerCase()] = user.email;
+  localStorage.setItem('ot_username_map', JSON.stringify(map));
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  await initApp();
+}
+
+// ===========================
+// CONSTANTS
+// ===========================
+const TEST_LIST = [
+  'China Fabric Test','China Garments Test','Fiber Composition Test',
+  'Inhouse CIQ Test','Inhouse KOTITI Test','Inhouse PS Test',
+  'Korea Fabric Test','Korea Garments Test',
+  'Third Party CIQ Test','Third Party KOTITI Test','Third Party PS Test'
+];
+const CS_TEST_NAME = 'CS Test';
+const NOTIF_DAYS = 7;
+const FABRIC_TESTS = ['China Fabric Test','Korea Fabric Test'];
+const KOTITI_TESTS = ['Third Party KOTITI Test'];
+const FABRIC_LEAD_DAYS  = 20;   // notify 20 days before shipDate
+const KOTITI_LEAD_DAYS  = 30;   // notify 30 days before shipDate
+
+function getLeadDays(testName) {
+  if (KOTITI_TESTS.includes(testName))  return KOTITI_LEAD_DAYS;
+  if (FABRIC_TESTS.includes(testName))  return FABRIC_LEAD_DAYS;
+  return NOTIF_DAYS; // 7 days before TOD for everything else
+}
+const SUNDAY_CUTOFF_TESTS = [
+  'Inhouse PS Test','Third Party PS Test','Korea Garments Test',
+  'Inhouse KOTITI Test','Korea Fabric Test','Third Party KOTITI Test',
+  'Fiber Composition Test'
+];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ===========================
+// GLOBAL STATE
+// ===========================
+let orders = [];
+let users = [];
+let currentUser = null;
+let editId = null;
+let detailId = null;
+let filteredList = [];
+let selectedIds = new Set();
+let activeStatFilter = null;
+let weekFilter = { week: null, year: null, field: 'tod' };
+let monthFilter = { month: null, year: null };
+let monthViewFilter = 'all';
+let monthFilteredRows = [];
+let currentView = 'orders';
+let _openMenuId = null;
+let upcomingFilter = 'all';
+let notsentRange = 'week1'; // 'week1' | 'days15' | 'month1'
+let upcomingSearch = '';
+let detailEditMode = false;
+let _highlightTestName = null; // test name to highlight when detail modal opens
+let _upcomingItems = []; // current visible upcoming items for export
+let pendingDeleteId = null;
+
+// ===========================
+// HELPER FUNCTIONS
+// ===========================
+function fmtDate(s) {
+  if (!s) return '—';
+  const p = s.split('-');
+  if (p.length !== 3) return s;
+  return `${p[2]}/${p[1]}/${p[0]}`;
+}
+
+function dateFromStr(s) {
+  if (!s) return null;
+  const p = s.split('-');
+  return new Date(+p[0], +p[1]-1, +p[2]);
+}
+
+function toYMD(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function today() {
+  return toYMD(new Date());
+}
+
+function calcCsTestDeadline(firstTod) {
+  if (!firstTod) return '';
+  const p = firstTod.split('-');
+  const d = new Date(+p[0], +p[1]-1, +p[2]);
+  d.setDate(d.getDate() - 7);
+  return toYMD(d);
+}
+
+function buildCsTest(firstTod, existing) {
+  return {
+    name: CS_TEST_NAME,
+    isCSTest: true,
+    tod: '',
+    shipDate: '',
+    sentDate: '',
+    reportDate: existing?.reportDate || '',
+    result: existing?.result || 'Pending',
+    csDeadline: calcCsTestDeadline(firstTod)
+  };
+}
+
+function calcShipDate(testName, todStr) {
+  if (!todStr) return '';
+  const parts = todStr.split('-');
+  const tod = new Date(+parts[0], +parts[1]-1, +parts[2]);
+  const isSundayGroup = SUNDAY_CUTOFF_TESTS.includes(testName);
+  const target = new Date(tod);
+  if (isSundayGroup) {
+    target.setDate(tod.getDate() - 1);
+  } else {
+    target.setDate(tod.getDate() + 3);
+  }
+  return toYMD(target);
+}
+
+function getWeekNumFromDate(d) {
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const firstSun = new Date(jan1);
+  firstSun.setDate(jan1.getDate() + ((7 - jan1.getDay()) % 7));
+  if (d < firstSun) return 1;
+  const diff = d - firstSun;
+  return Math.floor(diff / 604800000) + 2;
+}
+
+function getWeekNum(dateStr) {
+  if (!dateStr) return '';
+  const p = dateStr.split('-');
+  const d = new Date(+p[0], +p[1]-1, +p[2]);
+  const wn = getWeekNumFromDate(d);
+  return `W${wn}-${d.getFullYear()}`;
+}
+
+function ensureCsTest(order) {
+  if (!order.tests) order.tests = [];
+  const existing = order.tests.find(t => t.isCSTest);
+  const cs = buildCsTest(order.tod, existing);
+  order.tests = order.tests.filter(t => !t.isCSTest);
+  order.tests.unshift(cs);
+  return order;
+}
+
+function showLoading() { document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+function showToast(msg, type='success') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = { success: 'OK', error: 'Error', info: 'Info' };
+  t.innerHTML = `<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function showLoaderFor(fn) {
+  showLoading();
+  setTimeout(async () => {
+    try { await fn(); } finally { hideLoading(); }
+  }, 10);
+}
+
+// ===========================
+// SUPABASE CRUD
+// ===========================
+// ===========================
+// DATA LAYER (localStorage)
+// ===========================
+async function loadOrders() {
+  return _lsGet(LS_ORDERS).map(ensureCsTest);
+}
+
+async function loadUsers() {
+  return _lsGet(LS_USERS);
+}
+
+async function saveOrderToDB(order) {
+  const all = _lsGet(LS_ORDERS);
+  const idx = all.findIndex(o => o.id === order.id);
+  if (idx !== -1) all[idx] = order;
+  else all.push(order);
+  _lsSet(LS_ORDERS, all);
+}
+
+async function deleteOrderFromDB(id) {
+  const all = _lsGet(LS_ORDERS).filter(o => o.id !== id);
+  _lsSet(LS_ORDERS, all);
+}
+
+async function saveUserToDB(user) {
+  const all = _lsGet(LS_USERS);
+  const idx = all.findIndex(u => u.id === user.id);
+  if (idx !== -1) all[idx] = user;
+  else all.push(user);
+  _lsSet(LS_USERS, all);
+}
+
+async function deleteUserFromDB(id) {
+  const all = _lsGet(LS_USERS).filter(u => u.id !== id);
+  _lsSet(LS_USERS, all);
+}
+
+// ===========================
+// AUTH
+// ===========================
+// doLogin kept as alias
+async function doLogin() { await doEmailAuth(); }
+
+function _showPasswordResetUI() {
+  // Show login page with a "set new password" form instead
+  document.getElementById('loginPage').style.display = 'flex';
+  document.querySelector('.login-tagline').textContent = 'Set your new password';
+  document.getElementById('authEmail').closest('.login-input-wrap').style.display = 'none';
+  document.getElementById('forgotWrap').style.display = 'none';
+  document.getElementById('authPass').placeholder = 'New password';
+  const btn = document.getElementById('authSubmitBtn');
+  btn.textContent = 'Set New Password';
+  btn.onclick = async () => {
+    const newPass = document.getElementById('authPass').value;
+    if (!newPass || newPass.length < 6) { _showAuthMsg('Password must be at least 6 characters', 'error'); return; }
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const { error } = await _supa.auth.updateUser({ password: newPass });
+    if (error) { _showAuthMsg(error.message, 'error'); btn.disabled = false; btn.textContent = 'Set New Password'; }
+    else {
+      _showAuthMsg('Password updated! Signing you in…', 'success');
+      setTimeout(async () => {
+        const { data: { session } } = await _supa.auth.getSession();
+        if (session?.user) await _onSignedIn(session.user);
+      }, 1500);
+    }
+  };
+}
+
+async function doSignOut() {
+  await _supa.auth.signOut();
+  currentUser = null;
+  location.reload();
+}
+
+// ===========================
+// INIT APP
+// ===========================
+async function initApp() {
+  showLoading();
+  try {
+    orders = await loadOrders();
+    orders.sort((a, b) => b.id - a.id);
+    users = await loadUsers();
+    document.getElementById('userBadge').textContent = currentUser.username || currentUser.email || 'User';
+    if (currentUser.role === 'admin') {
+      document.getElementById('adminBtn').style.display = 'inline-flex';
+    }
+    document.getElementById('myAccountBtn').style.display = 'inline-flex';
+    startClock();
+    refresh();
+  } catch(e) {
+    console.error('initApp error:', e);
+  } finally {
+    hideLoading();
+  }
+}
+
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const opts = { weekday:'short', year:'numeric', month:'short', day:'numeric' };
+    const d = now.toLocaleDateString('en-GB', opts);
+    const t = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    document.getElementById('dateDisplay').textContent = `${d} ${t}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ===========================
+// REFRESH
+// ===========================
+function refresh() {
+  if (monthFilter.month && monthFilter.year) {
+    renderMonthTable();
+  } else {
+    renderTable();
+  }
+  renderStats();
+  renderNotifPanel();
+  if (currentView === 'upcoming') renderUpcoming();
+}
+
+// ===========================
+// STATS
+// ===========================
+function renderStats() {
+  const total = orders.length;
+  let tests = 0, pending = 0, pass = 0, fail = 0, sendPending = 0, reportPending = 0;
+  orders.forEach(o => {
+    o.tests.forEach(t => {
+      if (t.isCSTest) return;
+      tests++;
+      if (t.result === 'Pending') pending++;
+      if (t.result === 'Pass') pass++;
+      if (t.result === 'Fail') fail++;
+      if (t.tod && !t.sentDate) sendPending++;
+      if (t.sentDate && !t.reportDate) reportPending++;
+    });
+  });
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sTests').textContent = tests;
+  document.getElementById('sPending').textContent = pending;
+  document.getElementById('sPass').textContent = pass;
+  document.getElementById('sFail').textContent = fail;
+  document.getElementById('sSendPending').textContent = sendPending;
+  document.getElementById('tabOrdersBadge').textContent = total;
+
+  // upcoming badge = not-sent tests (non-CS)
+  let upcoming = 0;
+  const todayStr = today();
+  orders.forEach(o => {
+    o.tests.forEach(t => {
+      if (t.isCSTest) return;
+      if (t.tod && !t.sentDate) upcoming++;
+    });
+  });
+  document.getElementById('tabUpcomingBadge').textContent = upcoming;
+}
+
+// ===========================
+// STAT FILTER
+// ===========================
+function toggleStatFilter(type) {
+  if (activeStatFilter === type) {
+    activeStatFilter = null;
+  } else {
+    activeStatFilter = type;
+  }
+  // Clear all active-filter classes
+  ['btnTotal','btnTests','btnPending','btnPass','btnFail','btnSendPending'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active-filter');
+  });
+  // Highlight only the clicked button
+  if (activeStatFilter) {
+    const map = { total:'btnTotal', tests:'btnTests', pending:'btnPending', pass:'btnPass', fail:'btnFail', send:'btnSendPending' };
+    const el = document.getElementById(map[activeStatFilter]);
+    if (el) el.classList.add('active-filter');
+  }
+  // Switch to orders view if on upcoming
+  if (currentView !== 'orders') switchView('orders');
+  renderTable();
+}
+
+// ===========================
+// VIEW TABS
+// ===========================
+function switchView(v) {
+  currentView = v;
+  if (v === 'upcoming') {
+    // Keep search box value in sync
+    const si = document.getElementById('upcomingSearchInput');
+    if (si) si.value = upcomingSearch;
+  }
+  document.getElementById('tabOrders').classList.toggle('active', v==='orders');
+  document.getElementById('tabUpcoming').classList.toggle('active', v==='upcoming');
+  document.getElementById('ordersView').style.display = v==='orders' ? 'block' : 'none';
+  document.getElementById('upcomingView').style.display = v==='upcoming' ? 'block' : 'none';
+  if (v === 'upcoming') renderUpcoming();
+}
+
+// ===========================
+// WEEK FILTER
+// ===========================
+function toggleWeekSearch() {
+  const p = document.getElementById('weekSearchPanel');
+  p.classList.toggle('open');
+  document.getElementById('monthSearchPanel').classList.remove('open');
+}
+
+function applyWeekFilter() {
+  const w = parseInt(document.getElementById('weekNumInput').value);
+  const y = parseInt(document.getElementById('weekYearInput').value);
+  if (!w || !y) { showToast('Enter week number and year', 'error'); return; }
+  weekFilter = { week: w, year: y, field: 'tod' };
+  clearMonthFilter(true);
+  document.getElementById('weekActiveBadge').textContent = `W${w}-${y}`;
+  document.getElementById('weekActiveBadge').style.display = 'inline';
+  document.getElementById('weekSearchPanel').classList.remove('open');
+  renderTable();
+}
+
+function clearWeekFilter() {
+  weekFilter = { week: null, year: null, field: 'tod' };
+  document.getElementById('weekActiveBadge').style.display = 'none';
+  document.getElementById('weekNumInput').value = '';
+  document.getElementById('weekYearInput').value = '';
+  document.getElementById('weekSearchPanel').classList.remove('open');
+  renderTable();
+}
+
+// ===========================
+// MONTH FILTER
+// ===========================
+function initMonthYearSelect() {
+  const sel = document.getElementById('monthYearInput');
+  const cur = new Date().getFullYear();
+  sel.innerHTML = '';
+  for (let y = cur+2; y >= cur-5; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if (y === cur) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function toggleMonthSearch() {
+  const p = document.getElementById('monthSearchPanel');
+  p.classList.toggle('open');
+  document.getElementById('weekSearchPanel').classList.remove('open');
+}
+
+function applyMonthFilter() {
+  const m = parseInt(document.getElementById('monthMonthInput').value);
+  const y = parseInt(document.getElementById('monthYearInput').value);
+  if (!m) { showToast('Select a month', 'error'); return; }
+  monthFilter = { month: m, year: y };
+  monthViewFilter = 'all';
+  clearWeekFilter();
+  activeStatFilter = null;
+  ['btnTotal','btnTests','btnPending','btnPass','btnFail','btnSendPending'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active-filter'); });
+  const badge = document.getElementById('monthActiveBadge');
+  badge.textContent = `${MONTH_NAMES[m-1]} ${y}`;
+  badge.style.display = 'inline';
+  document.getElementById('monthSearchPanel').classList.remove('open');
+  // reset filter btns
+  document.getElementById('mfAll').classList.add('active');
+  document.getElementById('mfSent').classList.remove('active');
+  document.getElementById('mfNotsent').classList.remove('active');
+  renderMonthTable();
+}
+
+function clearMonthFilter(silent) {
+  monthFilter = { month: null, year: null };
+  monthViewFilter = 'all';
+  monthFilteredRows = [];
+  document.getElementById('monthActiveBadge').style.display = 'none';
+  document.getElementById('monthResultBar').classList.remove('visible');
+  restoreDefaultThead();
+  if (!silent) renderTable();
+}
+
+function setMonthViewFilter(f, btn) {
+  monthViewFilter = f;
+  document.querySelectorAll('.month-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMonthTable();
+}
+
+function restoreDefaultThead() {
+  document.getElementById('theadRow').innerHTML = `
+    <th style="width:36px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="accent-color:var(--teal);cursor:pointer;width:14px;height:14px"></th>
+    <th>Order #</th><th>Department</th><th>Style</th><th>Color</th>
+    <th>Season</th><th>First TOD</th><th>Test Requirements</th><th>Notes</th><th></th>`;
+}
+
+function renderMonthTable() {
+  // Set month-specific thead
+  document.getElementById('theadRow').innerHTML = `
+    <th style="width:36px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="accent-color:var(--teal);cursor:pointer;width:14px;height:14px"></th>
+    <th>Order #</th><th>Dept</th><th>Style</th><th>Color</th>
+    <th>First TOD</th><th>Test Name</th><th>Test TOD</th><th>Garment Sent</th><th>Result</th>`;
+
+  const { month, year } = monthFilter;
+  // Collect pairs
+  let pairs = [];
+  orders.forEach(o => {
+    o.tests.forEach(t => {
+      if (t.isCSTest) return;
+      if (!t.tod) return;
+      const p = t.tod.split('-');
+      if (parseInt(p[1]) === month && parseInt(p[0]) === year) {
+        pairs.push({ order: o, test: t });
+      }
+    });
+  });
+
+  // Apply sub-filter
+  if (monthViewFilter === 'sent') pairs = pairs.filter(p => p.test.sentDate);
+  if (monthViewFilter === 'notsent') pairs = pairs.filter(p => !p.test.sentDate);
+  monthFilteredRows = pairs;
+
+  // Show result bar
+  const bar = document.getElementById('monthResultBar');
+  bar.classList.add('visible');
+  document.getElementById('monthResultTitle').textContent = `${MONTH_NAMES[month-1]} ${year}`;
+  document.getElementById('monthResultCount').textContent = `${pairs.length} test${pairs.length!==1?'s':''}`;
+
+  const tbody = document.getElementById('tbody');
+  if (!pairs.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-state-title">No tests found</div><div class="empty-state-sub">No test TODs match ${MONTH_NAMES[month-1]} ${year}</div></div></td></tr>`;
+    return;
+  }
+
+  // Group by TOD date
+  const byDate = {};
+  pairs.forEach(({order,test}) => {
+    const k = test.tod;
+    if (!byDate[k]) byDate[k] = {};
+    const ok = order.id;
+    if (!byDate[k][ok]) byDate[k][ok] = { order, shipGroups: {} };
+    const sk = test.shipDate || '__none__';
+    if (!byDate[k][ok].shipGroups[sk]) byDate[k][ok].shipGroups[sk] = [];
+    byDate[k][ok].shipGroups[sk].push(test);
+  });
+
+  const sortedDates = Object.keys(byDate).sort();
+  let html = '';
+  sortedDates.forEach(dt => {
+    const dateOrders = byDate[dt];
+    Object.values(dateOrders).forEach(({ order, shipGroups }) => {
+      Object.entries(shipGroups).forEach(([sk, tests]) => {
+        const sentStatus = tests.every(t => t.sentDate) ? 'all-sent' : tests.some(t => t.sentDate) ? 'some-sent' : 'not-sent';
+        const testChips = tests.map(t => {
+          let cls = '';
+          if (t.result === 'Pass') cls = 'pass';
+          else if (t.result === 'Fail') cls = 'fail';
+          else if (t.sentDate) cls = 'sent';
+          return `<span class="test-chip ${cls}">${esc(t.name)}</span>`;
+        }).join(' ');
+        const sentCell = tests[0].sentDate ? `<span class="sent-indicator">Sent ${fmtDate(tests[0].sentDate)}</span>` : '<span style="color:var(--t3)">—</span>';
+        const resultSet = new Set(tests.map(t => t.result));
+        let resCell = [...resultSet].map(r => {
+          let cls = r==='Pass'?'pass':r==='Fail'?'fail':'';
+          return `<span class="test-chip ${cls}">${r}</span>`;
+        }).join(' ');
+        html += `<tr>
+          <td><input type="checkbox" data-id="${order.id}" ${selectedIds.has(order.id)?'checked':''} onchange="toggleSelect(${order.id},this)" style="accent-color:var(--teal);cursor:pointer;width:14px;height:14px"></td>
+          <td><span class="order-num">${esc(order.orderNum)}</span></td>
+          <td>${esc(order.dept||'—')}</td>
+          <td>${esc(order.style||'—')}</td>
+          <td>${(Array.isArray(order.color)?order.color:(order.color||'').split(',').map(s=>s.trim()).filter(Boolean)).join(', ')||'—'}</td>
+          <td>${fmtDate(order.tod)}</td>
+          <td>${testChips}</td>
+          <td>${fmtDate(tests[0].tod)}</td>
+          <td>${sentCell}</td>
+          <td>${resCell}</td>
+        </tr>`;
+      });
+    });
+  });
+  tbody.innerHTML = html;
+}
+
+// ===========================
+// DATE RANGE FILTER
+// ===========================
+function updateClearRangeBtn() {
+  const fi = document.getElementById('filterFrom');
+  const ti = document.getElementById('filterTo');
+  // Check both _flatpickr instance AND input value as reliable fallback
+  const fromHas = (fi?._flatpickr?.selectedDates?.length > 0) || (fi?.value?.trim().length > 0);
+  const toHas   = (ti?._flatpickr?.selectedDates?.length > 0) || (ti?.value?.trim().length > 0);
+  const btn = document.getElementById('clearRangeBtn');
+  if (btn) btn.style.display = (fromHas || toHas) ? 'inline-flex' : 'none';
+}
+
+function clearDateRange() {
+  const fi = document.getElementById('filterFrom');
+  const ti = document.getElementById('filterTo');
+  if (fi._flatpickr) fi._flatpickr.clear();
+  if (ti._flatpickr) ti._flatpickr.clear();
+  updateClearRangeBtn();
+  renderTable();
+}
+
+// ===========================
+// VISIBLE TESTS HELPER
+// ===========================
+function getVisibleTests(order) {
+  const fi = document.getElementById('filterFrom');
+  const ti = document.getElementById('filterTo');
+  const fromD = fi?._flatpickr?.selectedDates?.[0] || null;
+  const toD = ti?._flatpickr?.selectedDates?.[0] || null;
+  if (!fromD && !toD) return order.tests.filter(t => !t.isCSTest);
+  return order.tests.filter(t => {
+    if (t.isCSTest) return false;
+    if (!t.tod) return false;
+    const d = dateFromStr(t.tod);
+    if (fromD && d < fromD) return false;
+    if (toD && d > toD) return false;
+    return true;
+  });
+}
+
+// ===========================
+// MAIN TABLE RENDER
+// ===========================
+function renderTable() {
+  if (monthFilter.month && monthFilter.year) { renderMonthTable(); return; }
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  const fi = document.getElementById('filterFrom');
+  const ti = document.getElementById('filterTo');
+  const fromD = fi?._flatpickr?.selectedDates?.[0] || null;
+  const toD = ti?._flatpickr?.selectedDates?.[0] || null;
+  const hasRange = fromD || toD;
+
+  let list = orders.filter(o => {
+    // Stat filter
+    if (activeStatFilter === 'send') {
+      if (!o.tests.some(t => !t.isCSTest && t.tod && !t.sentDate)) return false;
+    }
+    if (activeStatFilter === 'report') {
+      if (!o.tests.some(t => !t.isCSTest && t.sentDate && !t.reportDate)) return false;
+    }
+    if (activeStatFilter === 'pending') {
+      if (!o.tests.some(t => !t.result || t.result === 'Pending')) return false;
+    }
+    if (activeStatFilter === 'pass') {
+      if (!o.tests.some(t => t.result === 'Pass')) return false;
+    }
+    if (activeStatFilter === 'fail') {
+      if (!o.tests.some(t => t.result === 'Fail')) return false;
+    }
+    // 'total' and 'tests' show all orders — no additional filter needed
+    // Week filter
+    if (weekFilter.week && weekFilter.year) {
+      const hasWeek = o.tests.some(t => {
+        if (!t.tod) return false;
+        const p = t.tod.split('-');
+        const d = new Date(+p[0],+p[1]-1,+p[2]);
+        return getWeekNumFromDate(d) === weekFilter.week && d.getFullYear() === weekFilter.year;
+      });
+      if (!hasWeek) return false;
+    }
+    // Date range filter
+    if (hasRange) {
+      const vis = getVisibleTests(o);
+      if (!vis.length) return false;
+    }
+    // Search
+    if (search) {
+      const _hColors = Array.isArray(o.color)?o.color:(o.color||'').split(',').map(s=>s.trim());
+      const haystack = [o.orderNum,o.dept,o.style,..._hColors,o.season,o.notes,...o.tests.map(t=>t.name)].join(' ').toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+
+  filteredList = list;
+
+  // Update selection label
+  updateSelectionUI();
+
+  const tbody = document.getElementById('tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-state-title">No orders found</div><div class="empty-state-sub">Try adjusting your filters or add a new order</div></div></td></tr>`;
+    return;
+  }
+
+  // Group by week if week filter active
+  if (weekFilter.week && weekFilter.year) {
+    renderTableGrouped(list, search);
+    return;
+  }
+
+  let html = '';
+  list.forEach(o => {
+    html += buildOrderRow(o, search);
+  });
+  tbody.innerHTML = html;
+}
+
+function renderTableGrouped(list, search) {
+  // Group by TOD date
+  const byWeek = {};
+  list.forEach(o => {
+    const weekStr = getWeekNum(o.tod) || 'No Week';
+    if (!byWeek[weekStr]) byWeek[weekStr] = [];
+    byWeek[weekStr].push(o);
+  });
+  let html = '';
+  Object.entries(byWeek).forEach(([week, orders]) => {
+    html += `<tr class="ship-group-header"><td colspan="10">${week}</td></tr>`;
+    orders.forEach(o => { html += buildOrderRow(o, search); });
+  });
+  document.getElementById('tbody').innerHTML = html;
+}
+
+function buildOrderRow(o, search) {
+  const visTests = getVisibleTests(o);
+  const allTests = o.tests.filter(t => !t.isCSTest);
+  const displayTests = visTests.length ? visTests : allTests;
+  const allSent = allTests.length > 0 && allTests.every(t => t.sentDate);
+
+  const testChips = displayTests.map(t => {
+    let cls = '';
+    if (t.result === 'Pass') cls = 'pass';
+    else if (t.result === 'Fail') cls = 'fail';
+    else if (t.sentDate) cls = 'sent';
+    // Highlight chip based on active stat filter
+    let hlCls = '';
+    if (activeStatFilter === 'send'    && t.tod && !t.sentDate)              hlCls = ' stat-hl';
+    if (activeStatFilter === 'report'  && t.sentDate && !t.reportDate)       hlCls = ' stat-hl';
+    if (activeStatFilter === 'pending' && (!t.result || t.result==='Pending')) hlCls = ' stat-hl';
+    if (activeStatFilter === 'pass'    && t.result === 'Pass')                hlCls = ' stat-hl';
+    if (activeStatFilter === 'fail'    && t.result === 'Fail')                hlCls = ' stat-hl';
+    let name = t.name;
+    if (search) {
+      const re = new RegExp(`(${escRe(search)})`,'gi');
+      name = name.replace(re, '<span class="hl">$1</span>');
+    }
+    return `<span class="test-chip ${cls}${hlCls}">${name}</span>`;
+  }).join('');
+
+  const csTest = o.tests.find(t => t.isCSTest);
+  let csChipCls = 'cs';
+  if (csTest) {
+    const _todayNow = new Date(); _todayNow.setHours(0,0,0,0);
+    if (csTest.reportDate) csChipCls = 'pass';
+    else if (csTest.csDeadline && dateFromStr(csTest.csDeadline) < _todayNow) csChipCls = 'fail';
+  }
+  const csChip = csTest ? `<span class="test-chip ${csChipCls}">CS Test</span>` : '';
+
+  let orderNum = esc(o.orderNum);
+  let style = esc(o.style||'');
+  const _cArr = o.color ? (Array.isArray(o.color) ? o.color : o.color.split(',').map(s=>s.trim()).filter(Boolean)) : [];
+  let color = esc(_cArr.join(', ')) || '—';
+  let dept = esc(o.dept||'');
+  let season = esc(o.season||'');
+  let notes = esc(o.notes||'');
+  if (search) {
+    const re = new RegExp(`(${escRe(search)})`,'gi');
+    orderNum = orderNum.replace(re,'<span class="hl">$1</span>');
+    style = style.replace(re,'<span class="hl">$1</span>');
+    dept = dept.replace(re,'<span class="hl">$1</span>');
+    season = season.replace(re,'<span class="hl">$1</span>');
+    notes = notes.replace(re,'<span class="hl">$1</span>');
+  }
+
+  const allSentBadge = allSent ? `<span class="all-sent-badge">All Sent</span>` : '';
+
+  return `<tr onclick="openDetailModal(${o.id})" style="cursor:pointer;">
+    <td onclick="event.stopPropagation()"><input type="checkbox" data-id="${o.id}" ${selectedIds.has(o.id)?'checked':''} onchange="toggleSelect(${o.id},this)" style="accent-color:var(--teal);cursor:pointer;width:14px;height:14px"></td>
+    <td><span class="order-num">${orderNum}</span>${allSentBadge ? '<br>'+allSentBadge : ''}</td>
+    <td>${dept||'—'}</td>
+    <td>${style||'—'}</td>
+    <td>${color||'—'}</td>
+    <td>${season||'—'}</td>
+    <td>${fmtDate(o.tod)}</td>
+    <td><div class="tests-cell">${csChip}${testChips}</div></td>
+    <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t2);">${notes||'—'}</td>
+    <td onclick="event.stopPropagation()"><button class="row-menu-btn" onclick="openRowMenu(event,${o.id})">⋯</button></td>
+  </tr>`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+}
+
+// ===========================
+// SELECTION
+// ===========================
+function toggleSelect(id, el) {
+  if (el.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateSelectionUI();
+}
+
+function toggleSelectAll(el) {
+  if (el.checked) filteredList.forEach(o => selectedIds.add(o.id));
+  else selectedIds.clear();
+  renderTable();
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const n = selectedIds.size;
+  const lbl = document.getElementById('selectionLabel');
+  const exp = document.getElementById('exportBtn');
+  const prt = document.getElementById('printBtn');
+  if (n > 0) {
+    lbl.style.display = 'inline';
+    lbl.textContent = `${n} selected`;
+    exp.style.display = 'inline-flex';
+    prt.style.display = 'inline-flex';
+  } else {
+    lbl.style.display = 'none';
+    exp.style.display = 'none';
+    prt.style.display = 'none';
+  }
+}
+
+// ===========================
+// ROW MENU
+// ===========================
+function openRowMenu(event, id) {
+  event.stopPropagation();
+  _openMenuId = id;
+  const menu = document.getElementById('rowMenu');
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  menu.style.left = (rect.right - 180) + 'px';
+  const spaceBelow = window.innerHeight - rect.bottom;
+  if (spaceBelow < 200) {
+    menu.style.top = (rect.top - 170) + 'px';
+  } else {
+    menu.style.top = (rect.bottom + 4) + 'px';
+  }
+  menu.classList.add('open');
+}
+
+function menuAction(action) {
+  const id = _openMenuId;
+  document.getElementById('rowMenu').classList.remove('open');
+  _openMenuId = null;
+  if (action === 'edit') openAddModal(id);
+  else if (action === 'excel') exportSingleExcel(id);
+  else if (action === 'print') printSingleOrder(id);
+  else if (action === 'pdf') saveSinglePdf(id);
+  else if (action === 'delete') confirmDelete(id);
+}
+
+document.addEventListener('click', () => {
+  document.getElementById('rowMenu').classList.remove('open');
+});
+
+// ===========================
+// ADD/EDIT ORDER MODAL
+// ===========================
+let _todFP = null;
+let _checkFPs = {};
+
+function openAddModal(id) {
+  editId = id || null;
+  const modal = document.getElementById('addOverlay');
+  document.getElementById('addTitle').textContent = id ? 'Edit Order' : 'Add New Order';
+
+  // Reset
+  initColorTags('');
+  ['f_num','f_dept','f_style','f_season','f_notes'].forEach(x => {
+    const el = document.getElementById(x);
+    if (el) el.value = '';
+  });
+
+  // Build check grid first
+  buildCheckGrid();
+
+  // Init TOD flatpickr
+  const todEl = document.getElementById('f_tod');
+  if (_todFP) { _todFP.destroy(); _todFP = null; }
+  _todFP = flatpickr(todEl, {
+    dateFormat: 'd/m/Y',
+    allowInput: false,
+    disableMobile: true,
+    onReady(_, __, fp) { addFpFooter(fp); },
+    onChange() { updateCheckDates(); }
+  });
+
+  if (id) {
+    const o = orders.find(x => x.id === id);
+    if (o) {
+      document.getElementById('f_num').value = o.orderNum || '';
+      document.getElementById('f_dept').value = o.dept || '';
+      document.getElementById('f_style').value = o.style || '';
+      initColorTags(o.color || '');
+      document.getElementById('f_season').value = o.season || '';
+      document.getElementById('f_notes').value = o.notes || '';
+      if (o.tod) _todFP.setDate(o.tod, true, 'Y-m-d');
+
+      // Check tests
+      o.tests.forEach(t => {
+        if (t.isCSTest) return;
+        const cb = document.getElementById('chk_' + safeName(t.name));
+        if (cb) {
+          cb.checked = true;
+          // Set date
+          const fp = _checkFPs[t.name];
+          if (fp && t.tod) fp.setDate(t.tod, true, 'Y-m-d');
+        }
+      });
+    }
+  }
+
+  modal.classList.add('open');
+}
+
+function safeName(n) {
+  return n.replace(/[^a-zA-Z0-9]/g,'_');
+}
+
+function buildCheckGrid() {
+  _checkFPs = {};
+  const grid = document.getElementById('checkGrid');
+  grid.innerHTML = '';
+  TEST_LIST.forEach(name => {
+    const id = 'chk_' + safeName(name);
+    const div = document.createElement('div');
+    div.className = 'check-item';
+    div.innerHTML = `
+      <input type="checkbox" id="${id}" onchange="toggleCheckDate('${esc(name)}', this)">
+      <label class="check-label" for="${id}">${esc(name)}</label>
+      <div class="check-date" id="cd_${safeName(name)}" style="display:none">
+        <input type="text" class="fp-input" id="fp_${safeName(name)}" placeholder="TOD date" readonly style="width:120px">
+      </div>`;
+    grid.appendChild(div);
+
+    // Init flatpickr
+    const fpEl = div.querySelector(`#fp_${safeName(name)}`);
+    const fp = flatpickr(fpEl, {
+      dateFormat: 'd/m/Y',
+      allowInput: false,
+      disableMobile: true,
+      onReady(_, __, fp) { addFpFooter(fp); }
+    });
+    _checkFPs[name] = fp;
+  });
+}
+
+function toggleCheckDate(name, cb) {
+  const cd = document.getElementById('cd_' + safeName(name));
+  cd.style.display = cb.checked ? 'block' : 'none';
+  if (cb.checked) updateCheckDates();
+}
+
+function updateCheckDates() {
+  const todDate = _todFP?.selectedDates?.[0];
+  if (!todDate) return;
+  const todStr = toYMD(todDate);
+  TEST_LIST.forEach(name => {
+    const cb = document.getElementById('chk_' + safeName(name));
+    if (!cb?.checked) return;
+    const fp = _checkFPs[name];
+    if (!fp) return;
+    // Only auto-set if no date already
+    if (!fp.selectedDates?.[0]) {
+      const ship = calcShipDate(name, todStr);
+      // Set TOD on the test = main TOD (same week)
+      fp.setDate(todStr, true, 'Y-m-d');
+    }
+  });
+}
+
+function closeAddModal() {
+  document.getElementById('addOverlay').classList.remove('open');
+  editId = null;
+}
+
+function addFpFooter(fp) {
+  const cal = fp.calendarContainer;
+  if (!cal || cal.querySelector('.flatpickr-footer')) return;
+  const footer = document.createElement('div');
+  footer.className = 'flatpickr-footer';
+  const todayBtn = document.createElement('div');
+  todayBtn.className = 'fp-today-btn';
+  todayBtn.textContent = 'Today';
+  todayBtn.onclick = () => { fp.setDate(new Date()); fp.close(); };
+  const clearBtn = document.createElement('div');
+  clearBtn.className = 'fp-clear-btn';
+  clearBtn.textContent = 'Clear';
+  clearBtn.onclick = () => { fp.clear(); fp.close(); };
+  footer.appendChild(todayBtn);
+  footer.appendChild(clearBtn);
+  cal.appendChild(footer);
+
+  // Enter key = select today's date when calendar is open
+  cal._fpEnterHandler = function(e) {
+    if (e.key === 'Enter' && cal.classList.contains('open')) {
+      e.preventDefault();
+      e.stopPropagation();
+      fp.setDate(new Date());
+      fp.close();
+    }
+  };
+  document.addEventListener('keydown', cal._fpEnterHandler);
+}
+
+async function saveOrder() {
+  const num = document.getElementById('f_num').value.trim();
+  const dept = document.getElementById('f_dept').value.trim();
+  const style = document.getElementById('f_style').value.trim();
+  const color = document.getElementById('f_color').value.trim();
+  const season = document.getElementById('f_season').value.trim();
+  const notes = document.getElementById('f_notes').value.trim();
+  const todDate = _todFP?.selectedDates?.[0];
+  const todStr = todDate ? toYMD(todDate) : '';
+
+  if (!num) { showToast('Order number required', 'error'); return; }
+
+  const tests = [];
+  TEST_LIST.forEach(name => {
+    const cb = document.getElementById('chk_' + safeName(name));
+    if (!cb?.checked) return;
+    const fp = _checkFPs[name];
+    const todD = fp?.selectedDates?.[0];
+    const testTod = todD ? toYMD(todD) : '';
+    const shipDate = calcShipDate(name, testTod);
+
+    let existing = null;
+    if (editId) {
+      const o = orders.find(x => x.id === editId);
+      existing = o?.tests?.find(t => t.name === name);
+    }
+    tests.push({
+      name,
+      tod: testTod,
+      shipDate,
+      sentDate: existing?.sentDate || '',
+      reportDate: existing?.reportDate || '',
+      result: existing?.result || 'Pending'
+    });
+  });
+
+  const order = {
+    id: editId || Date.now(),
+    orderNum: num,
+    dept,
+    style,
+    color,
+    season,
+    tod: todStr,
+    notes,
+    tests
+  };
+  ensureCsTest(order);
+
+  showLoading();
+  try {
+    await saveOrderToDB(order);
+    if (editId) {
+      const idx = orders.findIndex(x => x.id === editId);
+      if (idx !== -1) orders[idx] = order;
+    } else {
+      orders.unshift(order); // newest on top
+    }
+    closeAddModal();
+    refresh();
+    showToast(editId ? 'Order updated successfully' : 'Order added successfully');
+  } catch(e) {
+    showToast('Failed to save order: ' + e.message, 'error');
+  } finally { hideLoading(); }
+}
+
+// ===========================
+// DETAIL MODAL
+// ===========================
+function openDetailModal(id, highlightTest) {
+  detailId = id;
+  detailEditMode = false;
+  _highlightTestName = highlightTest || null;
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+
+  document.getElementById('dTitle').textContent = `Order #${o.orderNum}`;
+  const _subColors = o.color?(Array.isArray(o.color)?o.color:o.color.split(',').map(s=>s.trim()).filter(Boolean)):[];
+  document.getElementById('dSub').textContent = (o.style||'') + ' · ' + (_subColors.join(', ')||'') + ' · ' + (o.season||'');
+  document.getElementById('detailEditBtn').style.display = 'inline-flex';
+  document.getElementById('detailSaveBtn').style.display = 'none';
+  document.getElementById('detailNotice').textContent = 'Click Edit to make changes';
+
+  // Info grid
+  document.getElementById('dInfo').innerHTML = `
+    <div class="detail-field"><div class="detail-field-label">Order #</div><div class="detail-field-val order-num">${esc(o.orderNum)}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Department</div><div class="detail-field-val">${esc(o.dept||'—')}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Style</div><div class="detail-field-val">${esc(o.style||'—')}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Color</div><div class="detail-field-val">${(o.color?(Array.isArray(o.color)?o.color:o.color.split(',').map(s=>s.trim()).filter(Boolean)):[]).join(', ')||'—'}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Season</div><div class="detail-field-val">${esc(o.season||'—')}</div></div>
+    <div class="detail-field"><div class="detail-field-label">First TOD</div><div class="detail-field-val">${fmtDate(o.tod)}</div></div>
+    <div class="detail-field" style="grid-column:span 2"><div class="detail-field-label">Notes</div><div class="detail-field-val">${esc(o.notes||'—')}</div></div>`;
+
+  renderDetailTests(o, false);
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function renderDetailTests(o, editMode) {
+  const container = document.getElementById('dTests');
+  let html = '';
+
+  o.tests.forEach((t, idx) => {
+    const isCS = t.isCSTest;
+    const weekBadge = (t.tod && !isCS) ? `<span class="week-badge">${getWeekNum(t.tod)}</span>` : '';
+    const csBadge = isCS ? `<span class="deadline-badge">Due: ${fmtDate(t.csDeadline)}</span>` : '';
+    let rowCls;
+    if (isCS) {
+      const todayNow = new Date(); todayNow.setHours(0,0,0,0);
+      if (t.reportDate) {
+        rowCls = 'test-row cs-row cs-received';
+      } else if (t.csDeadline && dateFromStr(t.csDeadline) < todayNow) {
+        rowCls = 'test-row cs-row cs-overdue';
+      } else {
+        rowCls = 'test-row cs-row';
+      }
+    } else {
+      rowCls = 'test-row';
+    }
+
+    let todCell = isCS ? 'N/A' : (fmtDate(t.tod) || '—');
+    let shipCell = isCS ? '<em style="color:var(--t3)">Not required</em>' : (fmtDate(t.shipDate) || '—');
+    let weekCell = isCS ? csBadge : weekBadge;
+
+    if (!editMode) {
+      let sentCell = t.sentDate ? `<span class="sent-indicator">Sent ${fmtDate(t.sentDate)}</span>` : '—';
+      let reportCell = t.reportDate ? fmtDate(t.reportDate) : '—';
+      let resultCls = t.result==='Pass'?'pass':t.result==='Fail'?'fail':'';
+      let resultCell = `<span class="test-chip ${resultCls}">${esc(t.result||'Pending')}</span>`;
+      let nameCell = isCS ? `<span>${esc(t.name)}</span> <span class="cs-mandatory-badge">MANDATORY</span>` : esc(t.name);
+
+      const isHL = _highlightTestName && t.name === _highlightTestName;
+      const hlCls = isHL ? ' highlighted' : '';
+      html += `<div class="${rowCls}${hlCls}" data-testname="${esc(t.name)}">
+        <div class="test-row-name">${nameCell}</div>
+        <div>${todCell}</div>
+        <div>${weekCell}</div>
+        <div>${shipCell}</div>
+        <div>${sentCell}</div>
+        <div>${reportCell}</div>
+        <div>${resultCell}</div>
+      </div>`;
+    } else {
+      // Edit mode
+      let sentField, reportField, resultField;
+      const sentId = `de_sent_${idx}`;
+      const repId = `de_rep_${idx}`;
+
+      if (isCS) {
+        // CS: only report + result editable, ship date locked
+        sentField = '<em style="color:var(--t3)">—</em>';
+        reportField = `<input type="text" class="fp-input fp-input-sm" id="${repId}" placeholder="Date" readonly value="${t.reportDate ? fmtDate(t.reportDate) : ''}">`;
+        resultField = `<select id="de_res_${idx}"><option ${t.result==='Pending'?'selected':''}>Pending</option><option ${t.result==='Pass'?'selected':''}>Pass</option><option ${t.result==='Fail'?'selected':''}>Fail</option></select>`;
+        shipCell = '<em style="color:var(--t3)">Not required</em>';
+      } else {
+        sentField = `<input type="text" class="fp-input fp-input-sm" id="${sentId}" placeholder="Date" readonly value="${t.sentDate ? fmtDate(t.sentDate) : ''}">`;
+        reportField = `<input type="text" class="fp-input fp-input-sm" id="${repId}" placeholder="Date" readonly value="${t.reportDate ? fmtDate(t.reportDate) : ''}">`;
+        resultField = `<select id="de_res_${idx}"><option ${t.result==='Pending'?'selected':''}>Pending</option><option ${t.result==='Pass'?'selected':''}>Pass</option><option ${t.result==='Fail'?'selected':''}>Fail</option></select>`;
+      }
+
+      let nameCell = isCS ? `<span>${esc(t.name)}</span> <span class="cs-mandatory-badge">MANDATORY</span>` : esc(t.name);
+
+      const isHL2 = _highlightTestName && t.name === _highlightTestName;
+      const hlCls2 = isHL2 ? ' highlighted' : '';
+      html += `<div class="${rowCls}${hlCls2}" data-testname="${esc(t.name)}">
+        <div class="test-row-name">${nameCell}</div>
+        <div>${todCell}</div>
+        <div>${weekCell}</div>
+        <div>${shipCell}</div>
+        <div>${sentField}</div>
+        <div>${reportField}</div>
+        <div>${resultField}</div>
+      </div>`;
+    }
+  });
+
+  container.innerHTML = html;
+
+  // Color result selects
+  setTimeout(initResultSelects, 0);
+  // Scroll to highlighted test row
+  if (_highlightTestName) {
+    setTimeout(() => {
+      const hlRow = document.querySelector('.test-row.highlighted');
+      if (hlRow) hlRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  }
+
+  // Init flatpickrs in edit mode
+  if (editMode) {
+    o.tests.forEach((t, idx) => {
+      const isCS = t.isCSTest;
+      if (!isCS) {
+        const sentEl = document.getElementById(`de_sent_${idx}`);
+        if (sentEl) {
+          const fp = flatpickr(sentEl, { dateFormat:'d/m/Y', allowInput:false, disableMobile:true, onReady(_,__,fp){addFpFooter(fp);} });
+          if (t.sentDate) fp.setDate(t.sentDate, true, 'Y-m-d');
+        }
+      }
+      const repEl = document.getElementById(`de_rep_${idx}`);
+      if (repEl) {
+        const fp = flatpickr(repEl, { dateFormat:'d/m/Y', allowInput:false, disableMobile:true, onReady(_,__,fp){addFpFooter(fp);} });
+        if (t.reportDate) fp.setDate(t.reportDate, true, 'Y-m-d');
+      }
+    });
+  }
+
+  // Retry section
+  renderRetrySection(o, editMode);
+}
+
+function renderRetrySection(o, editMode) {
+  const failedTests = o.tests.filter(t => !t.isCSTest && t.result === 'Fail');
+  const container = document.getElementById('dRetrySection');
+  if (!failedTests.length) { container.innerHTML = ''; return; }
+
+  let html = `<div class="retry-section"><div class="retry-section-label">Retry Section</div><div class="retry-rows">`;
+  failedTests.forEach((t, i) => {
+    html += `<div class="retry-row">
+      <div><strong style="color:var(--red)">${esc(t.name)}</strong> <span style="font-size:11px;color:var(--t3)">— Retry</span></div>
+      <div><label style="font-size:12px;color:var(--t2)">Sent Date</label>
+        ${editMode ? `<br><input type="text" class="fp-input fp-input-sm" id="rt_sent_${i}" placeholder="Date" readonly>` : `<br><span style="color:var(--t2);font-size:12px">${t.retrySentDate ? fmtDate(t.retrySentDate) : '—'}</span>`}
+      </div>
+      <div><label style="font-size:12px;color:var(--t2)">Report Date</label>
+        ${editMode ? `<br><input type="text" class="fp-input fp-input-sm" id="rt_rep_${i}" placeholder="Date" readonly>` : `<br><span style="color:var(--t2);font-size:12px">${t.retryReportDate ? fmtDate(t.retryReportDate) : '—'}</span>`}
+      </div>
+      <div><label style="font-size:12px;color:var(--t2)">Result</label>
+        ${editMode ? `<br><select id="rt_res_${i}"><option ${!t.retryResult||t.retryResult==='Pending'?'selected':''}>Pending</option><option ${t.retryResult==='Pass'?'selected':''}>Pass</option><option ${t.retryResult==='Fail'?'selected':''}>Fail</option></select>` : `<br><span class="test-chip ${t.retryResult==='Pass'?'pass':t.retryResult==='Fail'?'fail':''}">${t.retryResult||'Pending'}</span>`}
+      </div>
+    </div>`;
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+  setTimeout(initResultSelects, 0);
+
+  if (editMode) {
+    failedTests.forEach((t, i) => {
+      const sentEl = document.getElementById(`rt_sent_${i}`);
+      const repEl = document.getElementById(`rt_rep_${i}`);
+      if (sentEl) {
+        const fp = flatpickr(sentEl, { dateFormat:'d/m/Y', allowInput:false, disableMobile:true, onReady(_,__,fp){addFpFooter(fp);} });
+        if (t.retrySentDate) fp.setDate(t.retrySentDate, true, 'Y-m-d');
+      }
+      if (repEl) {
+        const fp = flatpickr(repEl, { dateFormat:'d/m/Y', allowInput:false, disableMobile:true, onReady(_,__,fp){addFpFooter(fp);} });
+        if (t.retryReportDate) fp.setDate(t.retryReportDate, true, 'Y-m-d');
+      }
+    });
+  }
+}
+
+function colorResultSelect(sel) {
+  if (!sel) return;
+  sel.className = sel.className.replace(/res-\w+/g, '').trim();
+  if (sel.value === 'Pass') sel.classList.add('res-pass');
+  else if (sel.value === 'Fail') sel.classList.add('res-fail');
+  else sel.classList.add('res-pending');
+}
+
+function initResultSelects() {
+  document.querySelectorAll('.test-row select, .retry-row select').forEach(sel => {
+    colorResultSelect(sel);
+    sel.addEventListener('change', () => colorResultSelect(sel));
+  });
+}
+
+function toggleDetailEdit() {
+  detailEditMode = !detailEditMode;
+  const o = orders.find(x => x.id === detailId);
+  if (!o) return;
+  document.getElementById('detailEditBtn').style.display = detailEditMode ? 'none' : 'inline-flex';
+  document.getElementById('detailSaveBtn').style.display = detailEditMode ? 'inline-flex' : 'none';
+  document.getElementById('detailNotice').textContent = detailEditMode ? 'Editing — click Save when done' : 'Click Edit to make changes';
+  renderDetailTests(o, detailEditMode);
+}
+
+async function saveTestDetails() {
+  const o = orders.find(x => x.id === detailId);
+  if (!o) return;
+
+  o.tests.forEach((t, idx) => {
+    const isCS = t.isCSTest;
+    if (!isCS) {
+      const sentEl = document.getElementById(`de_sent_${idx}`);
+      const repEl = document.getElementById(`de_rep_${idx}`);
+      const resEl = document.getElementById(`de_res_${idx}`);
+      if (sentEl?._flatpickr) {
+        const d = sentEl._flatpickr.selectedDates?.[0];
+        t.sentDate = d ? toYMD(d) : '';
+      }
+      if (repEl?._flatpickr) {
+        const d = repEl._flatpickr.selectedDates?.[0];
+        t.reportDate = d ? toYMD(d) : '';
+      }
+      if (resEl) t.result = resEl.value;
+    } else {
+      const repEl = document.getElementById(`de_rep_${idx}`);
+      const resEl = document.getElementById(`de_res_${idx}`);
+      if (repEl?._flatpickr) {
+        const d = repEl._flatpickr.selectedDates?.[0];
+        t.reportDate = d ? toYMD(d) : '';
+      }
+      if (resEl) t.result = resEl.value;
+    }
+  });
+
+  // Save retry data
+  const failedTests = o.tests.filter(t => !t.isCSTest && t.result === 'Fail');
+  failedTests.forEach((t, i) => {
+    const sentEl = document.getElementById(`rt_sent_${i}`);
+    const repEl = document.getElementById(`rt_rep_${i}`);
+    const resEl = document.getElementById(`rt_res_${i}`);
+    if (sentEl?._flatpickr) {
+      const d = sentEl._flatpickr.selectedDates?.[0];
+      t.retrySentDate = d ? toYMD(d) : '';
+    }
+    if (repEl?._flatpickr) {
+      const d = repEl._flatpickr.selectedDates?.[0];
+      t.retryReportDate = d ? toYMD(d) : '';
+    }
+    if (resEl) t.retryResult = resEl.value;
+  });
+
+  showLoading();
+  try {
+    await saveOrderToDB(o);
+    detailEditMode = false;
+    document.getElementById('detailEditBtn').style.display = 'inline-flex';
+    document.getElementById('detailSaveBtn').style.display = 'none';
+    document.getElementById('detailNotice').textContent = 'Click Edit to make changes';
+    renderDetailTests(o, false);
+    refresh();
+    showToast('Test details saved');
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  } finally { hideLoading(); }
+}
+
+function closeDetailModal() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  detailId = null;
+  detailEditMode = false;
+}
+
+// ===========================
+// DELETE
+// ===========================
+function confirmDelete(id) {
+  pendingDeleteId = id;
+  const o = orders.find(x => x.id === id);
+  document.getElementById('confirmSub').textContent = o ? `Order #${o.orderNum} — This can be undone within 15 seconds.` : 'This can be undone within 15 seconds.';
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  pendingDeleteId = null;
+}
+
+function doDelete() {
+  const id = pendingDeleteId;
+  closeConfirm();
+  if (!id) return;
+  const idx = orders.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const backup = JSON.parse(JSON.stringify(orders[idx]));
+  orders.splice(idx, 1);
+  refresh();
+  showUndoBar(backup);
+}
+
+function showUndoBar(backup) {
+  const container = document.getElementById('toastContainer');
+  const item = document.createElement('div');
+  item.className = 'undo-bar-item';
+  const DURATION = 15000;
+  let start = Date.now();
+  let undone = false;
+  let timer;
+
+  const progress = document.createElement('div');
+  progress.className = 'undo-progress';
+  progress.style.width = '100%';
+  progress.style.transition = `width ${DURATION}ms linear`;
+
+  item.innerHTML = `<span class="undo-bar-text">Order <strong>#${backup.orderNum}</strong> deleted</span><span class="undo-bar-time" id="ubtime_${backup.id}">15s</span>`;
+  const undoBtn = document.createElement('button');
+  undoBtn.className = 'undo-btn';
+  undoBtn.textContent = 'Undo';
+  const dismissBtn = document.createElement('button');
+  dismissBtn.className = 'undo-dismiss';
+  dismissBtn.textContent = '✕';
+
+  item.appendChild(undoBtn);
+  item.appendChild(dismissBtn);
+  item.appendChild(progress);
+  container.appendChild(item);
+
+  setTimeout(() => { progress.style.width = '0%'; }, 50);
+
+  const timeEl = item.querySelector(`#ubtime_${backup.id}`);
+  const ticker = setInterval(() => {
+    const remaining = Math.max(0, Math.ceil((DURATION - (Date.now() - start)) / 1000));
+    if (timeEl) timeEl.textContent = `${remaining}s`;
+  }, 500);
+
+  timer = setTimeout(async () => {
+    clearInterval(ticker);
+    item.remove();
+    if (!undone) {
+      try { await deleteOrderFromDB(backup.id); } catch(e) { console.error(e); }
+    }
+  }, DURATION);
+
+  undoBtn.onclick = async () => {
+    undone = true;
+    clearTimeout(timer);
+    clearInterval(ticker);
+    item.remove();
+    orders.unshift(backup); // restore to top
+    try {
+      await saveOrderToDB(backup);
+      refresh();
+      showToast('Order restored');
+    } catch(e) { showToast('Restore failed', 'error'); }
+  };
+
+  dismissBtn.onclick = async () => {
+    undone = false;
+    clearTimeout(timer);
+    clearInterval(ticker);
+    item.remove();
+    try { await deleteOrderFromDB(backup.id); } catch(e) {}
+  };
+}
+
+// ===========================
+// UPCOMING VIEW
+// ===========================
+function setUpcomingFilter(f, btn) {
+  upcomingFilter = f;
+  document.querySelectorAll('.upcoming-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const sub = document.getElementById('notsentSubFilters');
+  if (sub) sub.style.display = (f === 'notsent') ? 'flex' : 'none';
+  renderUpcoming();
+}
+
+function setNotsentRange(r, btn) {
+  notsentRange = r;
+  document.querySelectorAll('.upcoming-sub-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUpcoming();
+}
+
+function renderUpcoming() {
+  const todayD = new Date();
+  todayD.setHours(0,0,0,0);
+  const todayStr = toYMD(todayD);
+
+  let items = [];
+  orders.forEach(o => {
+    o.tests.forEach(t => {
+      if (t.isCSTest) return;
+      if (!t.tod) return;
+      items.push({ order: o, test: t });
+    });
+  });
+
+  if (upcomingFilter === 'sent') items = items.filter(i => i.test.sentDate);
+  if (upcomingFilter === 'notsent') {
+    items = items.filter(i => !i.test.sentDate);
+    // Apply date range sub-filter on TOD
+    if (notsentRange !== 'all') {
+      const rangeEnd = new Date(todayD);
+      if (notsentRange === 'week1')  rangeEnd.setDate(rangeEnd.getDate() + 7);
+      else if (notsentRange === 'days15') rangeEnd.setDate(rangeEnd.getDate() + 15);
+      else if (notsentRange === 'month1') rangeEnd.setMonth(rangeEnd.getMonth() + 1);
+      items = items.filter(i => {
+        if (!i.test.tod) return false;
+        const tod = dateFromStr(i.test.tod);
+        return tod >= todayD && tod <= rangeEnd;
+      });
+    }
+  }
+
+  // Apply search filter
+  if (upcomingSearch) {
+    const sq = upcomingSearch.toLowerCase();
+    items = items.filter(({ order, test }) => {
+      const colors = order.color ? (Array.isArray(order.color) ? order.color : order.color.split(',').map(s=>s.trim()).filter(Boolean)).join(' ') : '';
+      return (order.orderNum||'').toLowerCase().includes(sq)
+          || (order.style||'').toLowerCase().includes(sq)
+          || colors.toLowerCase().includes(sq)
+          || (test.name||'').toLowerCase().includes(sq)
+          || (order.season||'').toLowerCase().includes(sq)
+          || (order.dept||'').toLowerCase().includes(sq);
+    });
+  }
+
+  // Sort by TOD
+  items.sort((a,b) => a.test.tod.localeCompare(b.test.tod));
+
+  // Group by TOD
+  const byDate = {};
+  items.forEach(i => {
+    const k = i.test.tod;
+    if (!byDate[k]) byDate[k] = [];
+    byDate[k].push(i);
+  });
+
+  const list = document.getElementById('upcomingList');
+  if (!items.length) {
+    const msg = upcomingSearch ? `No tasks match "<strong>${esc(upcomingSearch)}</strong>"` : 'All tests have been sent or no tasks match the filter';
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-title">No tasks found</div><div class="empty-state-sub">${msg}</div></div>`;
+    const countEl = document.getElementById('upcomingCount');
+    if (countEl) countEl.textContent = '';
+    _upcomingItems = [];
+    return;
+  }
+
+  let html = '';
+  Object.entries(byDate).forEach(([dt, entries]) => {
+    const todD2 = dateFromStr(dt);
+    const diffMs = todD2 - todayD;
+    const diffDays = Math.round(diffMs / 86400000);
+    html += `<div class="upcoming-date-group">
+      <div class="upcoming-date-header">${fmtDate(dt)} — ${getWeekNum(dt)}</div>
+      <div class="upcoming-cards">`;
+    entries.forEach(({ order, test }) => {
+      const sent = !!test.sentDate;
+      let daysCls = '', daysLabel = '';
+      if (diffDays < 0) { daysCls='overdue'; daysLabel=`${Math.abs(diffDays)}d overdue`; }
+      else if (diffDays === 0) { daysCls='today'; daysLabel='Today'; }
+      else if (diffDays <= 7) { daysCls='soon'; daysLabel=`${diffDays}d away`; }
+      else { daysLabel=`${diffDays}d away`; }
+
+      // Highlight search matches
+      let cardTestName = esc(test.name);
+      let cardStyle = esc(order.style||'');
+      let cardOrderNum = esc(order.orderNum);
+      const cardColors = (order.color?(Array.isArray(order.color)?order.color:order.color.split(',').map(s=>s.trim()).filter(Boolean)):[]).join(', ');
+      let cardColorsHl = esc(cardColors);
+      if (upcomingSearch) {
+        const hlRe = new RegExp(`(${escRe(upcomingSearch)})`,'gi');
+        cardTestName = cardTestName.replace(hlRe,'<span class="hl">$1</span>');
+        cardStyle = cardStyle.replace(hlRe,'<span class="hl">$1</span>');
+        cardOrderNum = cardOrderNum.replace(hlRe,'<span class="hl">$1</span>');
+        cardColorsHl = cardColorsHl.replace(hlRe,'<span class="hl">$1</span>');
+      }
+      html += `<div class="upcoming-card ${sent?'sent':'notsent'}" onclick="openDetailModal(${order.id},'${esc(test.name)}')">
+        <div class="upcoming-card-test">${cardTestName}</div>
+        <div class="upcoming-card-info">${cardStyle}${cardColorsHl ? ' · '+cardColorsHl : ''}</div>
+        <div class="upcoming-card-meta">
+          <span class="order-num">${cardOrderNum}</span>
+          <span class="week-badge">${getWeekNum(dt)}</span>
+          ${test.shipDate ? `<span style="font-size:11px;color:var(--t2)">Ship: ${fmtDate(test.shipDate)}</span>` : ''}
+          <span class="upcoming-card-days ${daysCls}">${daysLabel}</span>
+          ${sent ? `<span style="font-size:11px;color:var(--green)">Sent ${fmtDate(test.sentDate)}</span>` : ''}
+        </div>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+
+  list.innerHTML = html;
+
+  // Update count badge
+  const countEl = document.getElementById('upcomingCount');
+  if (countEl) countEl.textContent = items.length ? `${items.length} task${items.length===1?'':'s'}` : '';
+
+  // Store for export
+  _upcomingItems = items;
+}
+
+// ===========================
+// UPCOMING EXPORT
+// ===========================
+function exportUpcomingExcel() {
+  if (!_upcomingItems.length) { showToast('No tasks to export', 'info'); return; }
+  const filterLabel = upcomingFilter === 'sent' ? 'Sent' : upcomingFilter === 'notsent' ? 'Not_Sent' : 'All';
+  const rows = [['Order #','Dept','Style','Color','Season','Test Name','TOD','Week','Ship Date','Sent Date','Report Date','Result','Days Away']];
+  const today = new Date(); today.setHours(0,0,0,0);
+  _upcomingItems.forEach(({ order, test }) => {
+    const colors = order.color ? (Array.isArray(order.color) ? order.color : order.color.split(',').map(s=>s.trim()).filter(Boolean)).join(', ') : '';
+    const todD = test.tod ? dateFromStr(test.tod) : null;
+    const daysAway = todD ? Math.round((todD - today) / 86400000) : '';
+    rows.push([
+      order.orderNum, order.dept||'', order.style||'', colors, order.season||'',
+      test.name, test.tod||'', getWeekNum(test.tod), test.shipDate||'',
+      test.sentDate||'', test.reportDate||'', test.result||'', daysAway
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  // Auto column widths
+  const colWidths = rows[0].map((_, ci) => ({ wch: Math.max(...rows.map(r => String(r[ci]||'').length), 8) }));
+  ws['!cols'] = colWidths;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Upcoming Tasks');
+  XLSX.writeFile(wb, `Upcoming_Tasks_${filterLabel}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel exported', 'success');
+}
+
+function printUpcoming(asPdf) {
+  if (!_upcomingItems.length) { showToast('No tasks to print', 'info'); return; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const filterLabel = upcomingFilter === 'sent' ? 'Sent Tasks' : upcomingFilter === 'notsent' ? 'Not Sent Tasks' : 'All Upcoming Tasks';
+  let rows = '';
+  _upcomingItems.forEach(({ order, test }) => {
+    const colors = order.color ? (Array.isArray(order.color) ? order.color : order.color.split(',').map(s=>s.trim()).filter(Boolean)).join(', ') : '—';
+    const todD = test.tod ? dateFromStr(test.tod) : null;
+    const daysAway = todD ? Math.round((todD - today) / 86400000) : '—';
+    const daysLabel = typeof daysAway === 'number' ? (daysAway < 0 ? `${Math.abs(daysAway)}d overdue` : daysAway === 0 ? 'Today' : `${daysAway}d away`) : '—';
+    const statusColor = test.sentDate ? '#34d399' : (typeof daysAway === 'number' && daysAway < 0) ? '#fb7185' : daysAway === 0 ? '#fbbf24' : '#8b949e';
+    rows += `<tr>
+      <td>${order.orderNum}</td>
+      <td>${order.dept||'—'}</td>
+      <td>${order.style||'—'}</td>
+      <td>${colors}</td>
+      <td>${test.name}</td>
+      <td>${fmtDate(test.tod)}</td>
+      <td>${getWeekNum(test.tod)}</td>
+      <td>${fmtDate(test.shipDate)}</td>
+      <td>${fmtDate(test.sentDate)||'—'}</td>
+      <td>${test.result||'—'}</td>
+      <td style="color:${statusColor};font-weight:600">${daysLabel}</td>
+    </tr>`;
+  });
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Upcoming Tasks — ${filterLabel}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:16px;}
+    h2{font-size:16px;font-weight:700;margin-bottom:4px;}
+    .meta{font-size:11px;color:#555;margin-bottom:14px;}
+    table{width:100%;border-collapse:collapse;font-size:10.5px;}
+    th{background:#1c2330;color:#e6edf3;padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;}
+    td{padding:6px 8px;border-bottom:1px solid #e0e0e0;vertical-align:top;}
+    tr:nth-child(even) td{background:#f8f9fa;}
+    @media print{body{padding:8px;}@page{size:A4 landscape;margin:12mm;}}
+  </style></head><body>
+  <h2>OrderTrack — ${filterLabel}</h2>
+  <div class="meta">Exported: ${new Date().toLocaleDateString()} · ${_upcomingItems.length} task${_upcomingItems.length===1?'':'s'}</div>
+  <table>
+    <thead><tr><th>Order #</th><th>Dept</th><th>Style</th><th>Color</th><th>Test Name</th><th>TOD</th><th>Week</th><th>Ship Date</th><th>Sent Date</th><th>Result</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </body></html>`;
+  _openPrintWindow(html, asPdf);
+}
+
+// ===========================
+// NOTIFICATIONS
+// ===========================
+function toggleNotifPanel() {
+  const p = document.getElementById('notifPanel');
+  p.classList.toggle('open');
+}
+
+function renderNotifPanel() {
+  const todayD = new Date();
+  todayD.setHours(0,0,0,0);
+
+  // Get start of current week (Sunday)
+  const weekStart = new Date(todayD);
+  weekStart.setDate(todayD.getDate() - todayD.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  // ── SECTION 1: SENDING PENDING ──
+  // Tests that have NOT been sent yet
+  // For Fabric/KOTITI: trigger based on shipDate - leadDays
+  // For others: trigger based on TOD within NOTIF_DAYS
+  let sendOverdue = [], sendToday = [], sendThisWeek = [], sendUpcoming = [];
+  orders.forEach(o => {
+    o.tests.forEach(t => {
+      if (t.isCSTest) return;
+      if (!t.tod || t.sentDate) return; // skip if already sent
+      const lead = getLeadDays(t.name);
+      const isFabricOrKotiti = FABRIC_TESTS.includes(t.name) || KOTITI_TESTS.includes(t.name);
+
+      // For fabric/kotiti: use shipDate as the trigger reference; fall back to TOD
+      let refD;
+      if (isFabricOrKotiti && t.shipDate) {
+        const shipD = dateFromStr(t.shipDate);
+        // notify when today >= shipDate - leadDays
+        const notifyFrom = new Date(shipD);
+        notifyFrom.setDate(notifyFrom.getDate() - lead);
+        if (todayD < notifyFrom) return; // too early — not yet in notification window
+        refD = shipD;
+      } else {
+        // standard: use TOD
+        refD = dateFromStr(t.tod);
+      }
+
+      const diff = Math.round((refD - todayD) / 86400000); // days until ref date
+      const item = { order: o, test: t, diff, refD };
+      if (diff < 0) sendOverdue.push(item);
+      else if (diff === 0) sendToday.push(item);
+      else if (refD >= weekStart && refD <= weekEnd) sendThisWeek.push(item);
+      else sendUpcoming.push(item);
+    });
+  });
+
+  // ── SECTION 2: REPORT PENDING ──
+  // Tests that HAVE been sent (sentDate set) but report not yet received
+  // Highlight: shipDate = today or this week
+  let repToday = [], repThisWeek = [], repOther = [];
+  orders.forEach(o => {
+    o.tests.forEach(t => {
+      if (t.isCSTest) return;
+      if (!t.sentDate || t.reportDate) return; // skip if report received or not sent
+      const item = { order: o, test: t };
+      // Use sentDate to determine urgency
+      const sD = dateFromStr(t.sentDate);
+      const diffSent = Math.round((todayD - sD) / 86400000);
+      // Check if shipDate is today or this week
+      if (t.shipDate) {
+        const shD = dateFromStr(t.shipDate);
+        const shDiff = Math.round((shD - todayD) / 86400000);
+        if (shDiff === 0) { repToday.push({...item, shDiff}); return; }
+        if (shD >= weekStart && shD <= weekEnd) { repThisWeek.push({...item, shDiff}); return; }
+      }
+      repOther.push({...item, diffSent});
+    });
+  });
+
+  const sendTotal = sendOverdue.length + sendToday.length + sendThisWeek.length + sendUpcoming.length;
+  const repTotal = repToday.length + repThisWeek.length + repOther.length;
+  const total = sendTotal + repTotal;
+
+  const badge = document.getElementById('notifBadge');
+  badge.textContent = total;
+  badge.style.display = total > 0 ? 'flex' : 'none';
+
+  const panel = document.getElementById('notifPanel');
+
+  // Tab state
+  if (!panel._activeTab) panel._activeTab = 'send';
+
+  function buildSendHTML() {
+    if (!sendTotal) return '<div class="notif-empty">All tests sent!</div>';
+    let h = '';
+    if (sendOverdue.length) {
+      h += `<div class="notif-group-title" style="color:var(--red)">Overdue — Not Sent (${sendOverdue.length})</div>`;
+      sendOverdue.forEach(({ order, test, diff }) => {
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · TOD: ${fmtDate(test.tod)} <span style="color:var(--red);font-weight:700">(${Math.abs(diff)}d overdue)</span></div>
+        </div>`;
+      });
+    }
+    if (sendToday.length) {
+      h += `<div class="notif-group-title" style="color:var(--amber)">Due Today — Send Now! (${sendToday.length})</div>`;
+      sendToday.forEach(({ order, test }) => {
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · Ship: ${fmtDate(test.shipDate||'')}</div>
+        </div>`;
+      });
+    }
+    if (sendThisWeek.length) {
+      h += `<div class="notif-group-title" style="color:var(--teal)">This Week's Shipments (${sendThisWeek.length})</div>`;
+      sendThisWeek.forEach(({ order, test, diff }) => {
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · TOD: ${fmtDate(test.tod)} <span style="color:var(--teal)">(${diff}d)</span> · Ship: ${fmtDate(test.shipDate||'')}</div>
+        </div>`;
+      });
+    }
+    if (sendUpcoming.length) {
+      h += `<div class="notif-group-title" style="color:var(--t2)">Upcoming (${sendUpcoming.length})</div>`;
+      sendUpcoming.forEach(({ order, test, diff }) => {
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · TOD: ${fmtDate(test.tod)} (${diff}d away)</div>
+        </div>`;
+      });
+    }
+    return h;
+  }
+
+  function buildRepHTML() {
+    if (!repTotal) return '<div class="notif-empty">All reports received!</div>';
+    let h = '';
+    if (repToday.length) {
+      h += `<div class="notif-group-title" style="color:var(--amber)">Shipment Today — Awaiting Report (${repToday.length})</div>`;
+      repToday.forEach(({ order, test }) => {
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · Sent: ${fmtDate(test.sentDate)} · Ship: ${fmtDate(test.shipDate||'')}</div>
+        </div>`;
+      });
+    }
+    if (repThisWeek.length) {
+      h += `<div class="notif-group-title" style="color:var(--sky)">This Week's Shipments — Report Pending (${repThisWeek.length})</div>`;
+      repThisWeek.forEach(({ order, test, shDiff }) => {
+        const label = shDiff === 0 ? 'today' : shDiff > 0 ? `in ${shDiff}d` : `${Math.abs(shDiff)}d ago`;
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · Ship: ${fmtDate(test.shipDate||'')} <span style="color:var(--sky)">(${label})</span></div>
+        </div>`;
+      });
+    }
+    if (repOther.length) {
+      h += `<div class="notif-group-title" style="color:var(--t2)">Other Sent — Awaiting Report (${repOther.length})</div>`;
+      repOther.forEach(({ order, test, diffSent }) => {
+        h += `<div class="notif-item" onclick="openDetailModal(${order.id},'${esc(test.name)}');toggleNotifPanel()">
+          <div class="notif-item-title">${esc(test.name)}</div>
+          <div class="notif-item-sub">#${esc(order.orderNum)} · ${esc(order.style||'')} · Sent: ${fmtDate(test.sentDate)} (${diffSent}d ago)</div>
+        </div>`;
+      });
+    }
+    return h;
+  }
+
+  const sendActive = panel._activeTab === 'send';
+  panel.innerHTML = `
+    <div class="notif-panel-header" style="padding-bottom:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:700;color:var(--t1);">Notifications</span>
+        <button onclick="event.stopPropagation();toggleNotifPanel();" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0 4px;line-height:1;border-radius:4px;transition:color .15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">✕</button>
+      </div>
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--b1);margin:0 -0px;">
+        <button onclick="event.stopPropagation();document.getElementById('notifPanel')._activeTab='send';renderNotifPanel();" style="flex:1;padding:8px 12px;border:none;border-bottom:2px solid ${sendActive?'var(--amber)':'transparent'};background:none;color:${sendActive?'var(--amber)':'var(--t3)'};font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">
+          Sending Pending <span style="background:${sendTotal?'var(--amber-bg)':'var(--s3)'};color:${sendTotal?'var(--amber)':'var(--t3)'};border-radius:10px;padding:1px 7px;font-size:11px;">${sendTotal}</span>
+        </button>
+        <button onclick="event.stopPropagation();document.getElementById('notifPanel')._activeTab='report';renderNotifPanel();" style="flex:1;padding:8px 12px;border:none;border-bottom:2px solid ${!sendActive?'var(--sky)':'transparent'};background:none;color:${!sendActive?'var(--sky)':'var(--t3)'};font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">
+          Report Pending <span style="background:${repTotal?'var(--sky-bg)':'var(--s3)'};color:${repTotal?'var(--sky)':'var(--t3)'};border-radius:10px;padding:1px 7px;font-size:11px;">${repTotal}</span>
+        </button>
+      </div>
+    </div>
+    ${sendActive ? buildSendHTML() : buildRepHTML()}
+    <div style="padding:10px 16px;border-top:1px solid var(--b1);text-align:center;">
+      <button onclick="event.stopPropagation();openAlertsModal(sendActive?'send':'report');" style="background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:var(--r);transition:background .12s;" onmouseover="this.style.background='var(--teal-pale)'" onmouseout="this.style.background='none'">View All →</button>
+    </div>
+  `;
+}
+
+// ===========================
+// ALERTS VIEW ALL MODAL
+// ===========================
+let _alertsData = []; // flat rows for export
+let _alertsType = 'send';
+
+function openAlertsModal(type) {
+  _alertsType = type;
+  // Close notif panel first
+  document.getElementById('notifPanel').classList.remove('open');
+
+  const title = document.getElementById('alertsModalTitle');
+  const sub   = document.getElementById('alertsModalSub');
+  title.textContent = type === 'send' ? 'Sending Pending — All Alerts' : 'Report Pending — All Alerts';
+
+  // Re-collect the data (same logic as renderNotifPanel)
+  const todayD = new Date(); todayD.setHours(0,0,0,0);
+  const weekStart = new Date(todayD); weekStart.setDate(todayD.getDate() - todayD.getDay());
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+
+  let rows = [];
+
+  if (type === 'send') {
+    orders.forEach(o => {
+      o.tests.forEach(t => {
+        if (t.isCSTest || !t.tod || t.sentDate) return;
+        const lead = getLeadDays(t.name);
+        const isFabricOrKotiti = FABRIC_TESTS.includes(t.name) || KOTITI_TESTS.includes(t.name);
+        let refD;
+        if (isFabricOrKotiti && t.shipDate) {
+          const shipD = dateFromStr(t.shipDate);
+          const notifyFrom = new Date(shipD); notifyFrom.setDate(notifyFrom.getDate() - lead);
+          if (todayD < notifyFrom) return;
+          refD = shipD;
+        } else {
+          refD = dateFromStr(t.tod);
+        }
+        const diff = Math.round((refD - todayD) / 86400000);
+        let status = diff < 0 ? 'Overdue' : diff === 0 ? 'Due Today' : refD >= weekStart && refD <= weekEnd ? 'This Week' : 'Upcoming';
+        rows.push({ order: o, test: t, diff, status,
+          urgency: diff < 0 ? 0 : diff === 0 ? 1 : 2 });
+      });
+    });
+    rows.sort((a,b) => a.urgency - b.urgency || a.diff - b.diff);
+    sub.textContent = rows.length + ' test(s) not yet sent';
+
+    const thead = document.getElementById('alertsThead');
+    thead.innerHTML = `<tr style="background:var(--s2);">
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Status</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Order #</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Dept</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Style</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Test Name</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">TOD</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Shipment Date</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Days</th>
+    </tr>`;
+
+    const tbody = document.getElementById('alertsTbody');
+    tbody.innerHTML = rows.map(({order:o,test:t,diff,status}) => {
+      const sc = status==='Overdue'?'var(--red)':status==='Due Today'?'var(--amber)':status==='This Week'?'var(--teal)':'var(--t2)';
+      const daysLabel = diff < 0 ? Math.abs(diff)+'d overdue' : diff===0 ? 'Today' : diff+'d away';
+      return `<tr onclick="closeAlertsModal();setTimeout(()=>openDetailModal(${o.id},'${esc(t.name)}'),50);" style="cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">
+        <td style="padding:10px 14px;"><span style="color:${sc};font-size:12px;font-weight:700;">${status}</span></td>
+        <td style="padding:10px 14px;font-family:var(--mono);color:var(--teal);font-weight:700;font-size:13px;">${esc(o.orderNum)}</td>
+        <td style="padding:10px 14px;color:var(--t2);font-size:13px;">${esc(o.dept||'—')}</td>
+        <td style="padding:10px 14px;color:var(--t1);font-size:13px;">${esc(o.style||'—')}</td>
+        <td style="padding:10px 14px;color:var(--t1);font-size:13px;">${esc(t.name)}</td>
+        <td style="padding:10px 14px;color:var(--t2);font-size:13px;">${fmtDate(t.tod)}</td>
+        <td style="padding:10px 14px;color:var(--t2);font-size:13px;">${fmtDate(t.shipDate||'')}</td>
+        <td style="padding:10px 14px;color:${sc};font-size:12px;font-weight:600;">${daysLabel}</td>
+      </tr>`;
+    }).join('');
+
+    _alertsData = rows.map(({order:o,test:t,diff,status}) => ({
+      Status: status,
+      'Order #': o.orderNum,
+      Department: o.dept||'',
+      Style: o.style||'',
+      Color: Array.isArray(o.color)?o.color.join(', '):(o.color||''),
+      Season: o.season||'',
+      'Test Name': t.name,
+      'TOD': t.tod||'',
+      'Shipment Date': t.shipDate||'',
+      'Days': diff < 0 ? Math.abs(diff)+' overdue' : diff===0?'Today':diff+' away'
+    }));
+
+  } else {
+    // Report pending
+    orders.forEach(o => {
+      o.tests.forEach(t => {
+        if (t.isCSTest || !t.sentDate || t.reportDate) return;
+        const sD = dateFromStr(t.sentDate);
+        const diffSent = Math.round((todayD - sD) / 86400000);
+        let shDiff = null, status = 'Awaiting Report';
+        if (t.shipDate) {
+          const shD = dateFromStr(t.shipDate);
+          shDiff = Math.round((shD - todayD) / 86400000);
+          if (shDiff === 0) status = 'Ship Today';
+          else if (shD >= weekStart && shD <= weekEnd) status = 'This Week';
+        }
+        rows.push({ order: o, test: t, diffSent, shDiff, status,
+          urgency: status==='Ship Today'?0:status==='This Week'?1:2 });
+      });
+    });
+    rows.sort((a,b) => a.urgency - b.urgency || a.diffSent - b.diffSent);
+    sub.textContent = rows.length + ' test(s) awaiting report';
+
+    const thead = document.getElementById('alertsThead');
+    thead.innerHTML = `<tr style="background:var(--s2);">
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Status</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Order #</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Dept</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Style</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Test Name</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Sent Date</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Shipment Date</th>
+      <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:1px solid var(--b1);">Days Since Sent</th>
+    </tr>`;
+
+    const tbody = document.getElementById('alertsTbody');
+    tbody.innerHTML = rows.map(({order:o,test:t,diffSent,shDiff,status}) => {
+      const sc = status==='Ship Today'?'var(--amber)':status==='This Week'?'var(--sky)':'var(--t2)';
+      const shLabel = shDiff===null?'—':shDiff===0?'Today':shDiff>0?`in ${shDiff}d`:`${Math.abs(shDiff)}d ago`;
+      return `<tr onclick="closeAlertsModal();setTimeout(()=>openDetailModal(${o.id},'${esc(t.name)}'),50);" style="cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">
+        <td style="padding:10px 14px;"><span style="color:${sc};font-size:12px;font-weight:700;">${status}</span></td>
+        <td style="padding:10px 14px;font-family:var(--mono);color:var(--teal);font-weight:700;font-size:13px;">${esc(o.orderNum)}</td>
+        <td style="padding:10px 14px;color:var(--t2);font-size:13px;">${esc(o.dept||'—')}</td>
+        <td style="padding:10px 14px;color:var(--t1);font-size:13px;">${esc(o.style||'—')}</td>
+        <td style="padding:10px 14px;color:var(--t1);font-size:13px;">${esc(t.name)}</td>
+        <td style="padding:10px 14px;color:var(--t2);font-size:13px;">${fmtDate(t.sentDate)}</td>
+        <td style="padding:10px 14px;color:${sc};font-size:13px;">${fmtDate(t.shipDate||'')} <span style="font-size:11px">(${shLabel})</span></td>
+        <td style="padding:10px 14px;color:var(--t2);font-size:12px;">${diffSent}d ago</td>
+      </tr>`;
+    }).join('');
+
+    _alertsData = rows.map(({order:o,test:t,diffSent,shDiff,status}) => ({
+      Status: status,
+      'Order #': o.orderNum,
+      Department: o.dept||'',
+      Style: o.style||'',
+      Color: Array.isArray(o.color)?o.color.join(', '):(o.color||''),
+      Season: o.season||'',
+      'Test Name': t.name,
+      'Sent Date': t.sentDate||'',
+      'Shipment Date': t.shipDate||'',
+      'Days Since Sent': diffSent+'d'
+    }));
+  }
+
+  document.getElementById('alertsOverlay').classList.add('open');
+}
+
+function closeAlertsModal() {
+  document.getElementById('alertsOverlay').classList.remove('open');
+}
+
+function exportAlertsExcel() {
+  if (!_alertsData.length) { showToast('No data to export', 'error'); return; }
+  const ws = XLSX.utils.json_to_sheet(_alertsData);
+  const wb = XLSX.utils.book_new();
+  const sheetName = _alertsType === 'send' ? 'Sending Pending' : 'Report Pending';
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, sheetName.replace(' ','_') + '_Alerts.xlsx');
+}
+
+// ===========================
+// ADMIN PANEL
+// ===========================
+function openAdmin() {
+  renderUserList();
+  document.getElementById('adminOverlay').classList.add('open');
+}
+function closeAdmin() { document.getElementById('adminOverlay').classList.remove('open'); }
+
+function renderUserList() {
+  const list = document.getElementById('userList');
+  list.innerHTML = users.map(u => `
+    <div class="user-item">
+      <div class="user-item-name">${esc(u.username)}</div>
+      <span class="user-item-role ${u.role}">${u.role}</span>
+      ${u.username !== currentUser.username ? `<button class="btn btn-cancel" style="padding:4px 10px;font-size:12px" onclick="deleteUser(${u.id})">Remove</button>` : '<span style="color:var(--t3);font-size:12px">(you)</span>'}
+    </div>`).join('');
+}
+
+async function addUser() {
+  const username = document.getElementById('nu_user').value.trim();
+  const password = document.getElementById('nu_pass').value;
+  const role = document.getElementById('nu_role').value;
+  if (!username || !password) { showToast('Fill in all fields', 'error'); return; }
+  if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) { showToast('Username already exists', 'error'); return; }
+  const user = { id: Date.now(), username, password, role };
+  showLoading();
+  try {
+    await saveUserToDB(user);
+    users.push(user);
+    document.getElementById('nu_user').value = '';
+    document.getElementById('nu_pass').value = '';
+    renderUserList();
+    showToast('User added');
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this user?')) return;
+  showLoading();
+  try {
+    await deleteUserFromDB(id);
+    users = users.filter(u => u.id !== id);
+    renderUserList();
+    showToast('User deleted');
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
+}
+
+// ===========================
+// CHANGE PASSWORD
+// ===========================
+function openChangePass() {
+  document.getElementById('cp_email').value   = currentUser.email || '';
+  document.getElementById('cp_cur_user').value = currentUser.username || '';
+  document.getElementById('cp_new_user').value = '';
+  document.getElementById('cp_new').value = '';
+  document.getElementById('cp_confirm').value = '';
+  document.getElementById('changePassOverlay').classList.add('open');
+}
+function closeChangePass() { document.getElementById('changePassOverlay').classList.remove('open'); }
+
+async function saveChangeUsername() {
+  const newName = document.getElementById('cp_new_user').value.trim();
+  if (!newName) { showToast('Display name required', 'error'); return; }
+  if (newName === currentUser.username) { showToast('Same as current name', 'error'); return; }
+  showLoading();
+  try {
+    const { data, error } = await _supa.auth.updateUser({
+      data: { display_name: newName }
+    });
+    if (error) throw error;
+    currentUser.username = newName;
+    document.getElementById('userBadge').textContent = newName;
+    document.getElementById('cp_cur_user').value = newName;
+    document.getElementById('cp_new_user').value = '';
+    showToast('Display name updated to ' + newName);
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
+}
+
+async function saveChangePass() {
+  const newPass  = document.getElementById('cp_new').value;
+  const confirm2 = document.getElementById('cp_confirm').value;
+  if (!newPass) { showToast('New password required', 'error'); return; }
+  if (newPass.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+  if (newPass !== confirm2) { showToast('Passwords do not match', 'error'); return; }
+  showLoading();
+  try {
+    const { error } = await _supa.auth.updateUser({ password: newPass });
+    if (error) throw error;
+    closeChangePass();
+    showToast('Password changed successfully');
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
+}
+
+// ===========================
+// COLOR TAG INPUT
+// ===========================
+let _colorTags = [];
+
+function colorTagKeyDown(e) {
+  const input = e.target;
+  const val = input.value.trim();
+  if ((e.key === 'Enter' || e.key === ',') && val) {
+    e.preventDefault();
+    addColorTag(val);
+    input.value = '';
+  } else if (e.key === 'Backspace' && !input.value && _colorTags.length) {
+    removeColorTag(_colorTags.length - 1);
+  }
+}
+
+function colorTagOnInput(e) {
+  const val = e.target.value;
+  if (val.includes(',')) {
+    val.split(',').forEach(v => { if (v.trim()) addColorTag(v.trim()); });
+    e.target.value = '';
+  }
+}
+
+function addColorTag(val) {
+  const clean = val.replace(/,/g,'').trim();
+  if (!clean || _colorTags.includes(clean)) return;
+  _colorTags.push(clean);
+  renderColorTags();
+  syncColorField();
+}
+
+function removeColorTag(idx) {
+  _colorTags.splice(idx, 1);
+  renderColorTags();
+  syncColorField();
+}
+
+function renderColorTags() {
+  const wrap = document.getElementById('colorTagWrap');
+  const input = document.getElementById('colorTagInput');
+  wrap.querySelectorAll('.color-tag').forEach(el => el.remove());
+  _colorTags.forEach((tag, i) => {
+    const el = document.createElement('span');
+    el.className = 'color-tag';
+    el.innerHTML = esc(tag) + '<button type="button" class="color-tag-remove" onclick="removeColorTag(' + i + ')">\u00d7</button>';
+    wrap.insertBefore(el, input);
+  });
+}
+
+function syncColorField() {
+  document.getElementById('f_color').value = _colorTags.join(', ');
+}
+
+function initColorTags(existing) {
+  _colorTags = [];
+  if (existing) {
+    const arr = Array.isArray(existing)
+      ? existing
+      : existing.split(',').map(s => s.trim()).filter(Boolean);
+    _colorTags = arr;
+  }
+  renderColorTags();
+  syncColorField();
+}
+
+// ===========================
+// STYLE AUTOCOMPLETE
+// ===========================
+let _acHighlight = -1;
+
+function getSavedStyles() {
+  const styles = [...new Set(orders.map(o => o.style).filter(Boolean))].sort();
+  return styles;
+}
+
+function styleAC(input) {
+  const val = input.value.toLowerCase();
+  const dd = document.getElementById('styleDropdown');
+  const styles = getSavedStyles().filter(s => s.toLowerCase().includes(val) && s !== input.value);
+  if (!styles.length || !input.value) { dd.classList.remove('show'); return; }
+  dd.innerHTML = styles.map((s,i) => `<div class="ac-item" data-idx="${i}" onmousedown="pickStyle('${esc(s)}')">${esc(s)}</div>`).join('');
+  dd.classList.add('show');
+  _acHighlight = -1;
+}
+
+function pickStyle(s) {
+  document.getElementById('f_style').value = s;
+  document.getElementById('styleDropdown').classList.remove('show');
+}
+
+function styleKeyNav(e) {
+  const dd = document.getElementById('styleDropdown');
+  const items = dd.querySelectorAll('.ac-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') { _acHighlight = Math.min(_acHighlight+1, items.length-1); }
+  else if (e.key === 'ArrowUp') { _acHighlight = Math.max(_acHighlight-1, 0); }
+  else if (e.key === 'Enter' && _acHighlight >= 0) { pickStyle(items[_acHighlight].textContent); e.preventDefault(); return; }
+  else return;
+  items.forEach((item,i) => item.classList.toggle('active', i===_acHighlight));
+}
+
+function closeStyleAC() {
+  document.getElementById('styleDropdown').classList.remove('show');
+}
+
+// ===========================
+// PRINT / PDF / EXCEL
+// ===========================
+function _openPrintWindow(htmlContent) {
+  let iframe = document.getElementById('__printFrame');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = '__printFrame';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(iframe);
+  }
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open(); doc.write(htmlContent); doc.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => { iframe.contentWindow.print(); }, 400);
+}
+
+function printCSS() {
+  return `<style>
+    body{font-family:"Segoe UI",Arial,sans-serif;font-size:11px;padding:18px;color:#0f172a;}
+    h2{font-size:16px;margin-bottom:12px;color:#0f172a;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#0f172a;color:#fff;padding:7px 8px;font-size:9px;text-transform:uppercase;text-align:left;}
+    td{padding:6px 8px;border-bottom:1px solid #e2e8f0;vertical-align:middle;}
+    .cs-row td{border-left:3px solid #f59e0b;}
+    .pass{color:#059669;font-weight:700;} .fail{color:#dc2626;font-weight:700;}
+    @page{margin:1.2cm;size:landscape;}
+    thead{display:table-header-group;}
+    tr{page-break-inside:avoid;}
+    .pdf-hint{font-size:10px;color:#6366f1;background:#eef2ff;padding:6px 10px;border-radius:6px;margin-bottom:10px;display:inline-block;}
+  </style>`;
+}
+
+function buildPrintRows(orderList) {
+  let rows = '';
+  orderList.forEach(o => {
+    const shipGroups = {};
+    o.tests.forEach(t => {
+      const k = t.shipDate || '__cs__';
+      if (!shipGroups[k]) shipGroups[k] = [];
+      shipGroups[k].push(t);
+    });
+
+    let firstOrder = true;
+    // CS first
+    if (shipGroups['__cs__']) {
+      const t = shipGroups['__cs__'][0];
+      rows += `<tr class="cs-row">
+        <td rowspan="${firstOrder ? o.tests.length : 1}">${firstOrder ? esc(o.orderNum) : ''}</td>
+        <td>${esc(t.name)} <strong style="color:#f59e0b;font-size:9px">MANDATORY</strong></td>
+        <td>N/A</td><td>N/A</td><td>Not required</td>
+        <td>${t.sentDate||'—'}</td><td>${t.reportDate||'—'}</td>
+        <td class="${t.result==='Pass'?'pass':t.result==='Fail'?'fail':''}">${t.result||'Pending'}</td>
+      </tr>`;
+      firstOrder = false;
+    }
+    Object.entries(shipGroups).filter(([k])=>k!=='__cs__').forEach(([shipD, tests]) => {
+      tests.forEach((t, ti) => {
+        rows += `<tr>
+          ${ti===0&&firstOrder ? `<td rowspan="${o.tests.length}">${esc(o.orderNum)}</td>` : (ti===0&&!firstOrder?'':'') }
+          <td>${esc(t.name)}</td>
+          <td>${t.tod||'—'}</td>
+          <td>${getWeekNum(t.tod)}</td>
+          ${ti===0?`<td rowspan="${tests.length}">${fmtDate(shipD)}</td>`:''}
+          <td>${t.sentDate||'—'}</td>
+          <td>${t.reportDate||'—'}</td>
+          <td class="${t.result==='Pass'?'pass':t.result==='Fail'?'fail':''}">${t.result||'Pending'}</td>
+        </tr>`;
+        firstOrder = false;
+      });
+    });
+  });
+  return rows;
+}
+
+function buildPrintTable(orderList, pdf) {
+  const pdfHint = pdf ? `<p class="pdf-hint">In the print dialog → set <strong>Destination</strong> to <strong>Save as PDF</strong></p>` : '';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${printCSS()}</head><body>
+    ${pdfHint}
+    <h2>OrderTrack — Export</h2>
+    <table>
+      <thead><tr><th>Order #</th><th>Test Name</th><th>Test TOD</th><th>TOD Week</th><th>Shipment Date</th><th>Garment Sent</th><th>Report Received</th><th>Result</th></tr></thead>
+      <tbody>${buildPrintRows(orderList)}</tbody>
+    </table>
+  </body></html>`;
+}
+
+function getExportOrders() {
+  if (selectedIds.size > 0) return orders.filter(o => selectedIds.has(o.id));
+  if (monthFilter.month && monthFilter.year) return [...new Set(monthFilteredRows.map(r => r.order))];
+  return filteredList;
+}
+
+function printOrders() {
+  _openPrintWindow(buildPrintTable(getExportOrders(), false));
+}
+
+function printSingleOrder(id) {
+  const o = orders.find(x => x.id === id);
+  if (o) _openPrintWindow(buildPrintTable([o], false));
+}
+
+function saveSinglePdf(id) {
+  const o = orders.find(x => x.id === id);
+  if (o) _openPrintWindow(buildPrintTable([o], true));
+}
+
+function exportExcel() {
+  const list = getExportOrders();
+  buildExcel(list, 'OrderTrack_Export');
+}
+
+function exportSingleExcel(id) {
+  const o = orders.find(x => x.id === id);
+  if (o) buildExcel([o], `Order_${o.orderNum}`);
+}
+
+function buildExcel(orderList, filename) {
+  const rows = [['Order #','Dept','Style','Color','Season','First TOD','Test Name','Test TOD','TOD Week','Shipment Date','Garment Sent','Report Received','Result']];
+  orderList.forEach(o => {
+    o.tests.forEach(t => {
+      rows.push([
+        o.orderNum, o.dept, o.style, o.color, o.season, o.tod,
+        t.name, t.tod, getWeekNum(t.tod), t.shipDate, t.sentDate, t.reportDate, t.result
+      ]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+  XLSX.writeFile(wb, filename + '.xlsx');
+}
+
+function monthExportExcel() {
+  if (!monthFilter.month || !monthFilter.year) return;
+  const rows = [['Order #','Dept','Style','Color','First TOD','Test Name','Test TOD','Garment Sent','Result']];
+  monthFilteredRows.forEach(({ order, test }) => {
+    rows.push([order.orderNum, order.dept, order.style, (Array.isArray(order.color)?order.color:(order.color||'').split(',').map(s=>s.trim()).filter(Boolean)).join(', '), order.tod, test.name, test.tod, test.sentDate, test.result]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Month');
+  XLSX.writeFile(wb, `OrderTrack_${MONTH_NAMES[monthFilter.month-1]}_${monthFilter.year}.xlsx`);
+}
+
+function monthPrint(pdf) {
+  if (!monthFilter.month || !monthFilter.year) return;
+  const orderSet = [...new Set(monthFilteredRows.map(r => r.order))];
+  _openPrintWindow(buildPrintTable(orderSet, pdf));
+}
+
+// ===========================
+// DOMCONTENTLOADED
+// ===========================
+document.addEventListener('DOMContentLoaded', async () => {
+  // 0. Seed default users if first run
+  seedDefaultUsers();
+
+  // 1. Month year select
+  initMonthYearSelect();
+
+  // 2. Initial views
+  document.getElementById('upcomingView').style.display = 'none';
+  document.getElementById('ordersView').style.display = 'block';
+
+  // 3. Date range flatpickrs
+  setTimeout(() => {
+    const fromEl = document.getElementById('filterFrom');
+    const toEl = document.getElementById('filterTo');
+    if (fromEl) {
+      flatpickr(fromEl, { dateFormat:'d/m/Y', allowInput:false, disableMobile:true,
+        onChange:()=>{updateClearRangeBtn();renderTable();},
+        onClose:()=>{updateClearRangeBtn();renderTable();},
+        onReady(_,__,fp){addFpFooter(fp);}
+      });
+    }
+    if (toEl) {
+      flatpickr(toEl, { dateFormat:'d/m/Y', allowInput:false, disableMobile:true,
+        onChange:()=>{updateClearRangeBtn();renderTable();},
+        onClose:()=>{updateClearRangeBtn();renderTable();},
+        onReady(_,__,fp){addFpFooter(fp);}
+      });
+    }
+    // Observe input value changes as extra fallback
+    [fromEl, toEl].forEach(el => {
+      if (!el) return;
+      new MutationObserver(()=>updateClearRangeBtn()).observe(el, {attributes:true, attributeFilter:['value']});
+    });
+  }, 100);
+
+  // 4. Overlay backdrop click-to-close
+  ['adminOverlay','changePassOverlay','addOverlay','confirmOverlay','alertsOverlay'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('open');
+        if (id === 'addOverlay') editId = null;
+        if (id === 'confirmOverlay') pendingDeleteId = null;
+      }
+    });
+  });
+  document.getElementById('detailOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDetailModal();
+  });
+
+  // 5. Click outside to close panels
+  document.addEventListener('click', e => {
+    const np = document.getElementById('notifPanel');
+    const nb = document.getElementById('notifBtn');
+    const nw = nb ? nb.closest('.notif-wrap') : null;
+    if (np.classList.contains('open') && !np.contains(e.target) && !nb.contains(e.target) && !(nw && nw.contains(e.target))) {
+      np.classList.remove('open');
+    }
+    const mp = document.getElementById('monthSearchPanel');
+    const mb = document.getElementById('monthSearchBtn');
+    if (mp && mp.classList.contains('open') && !mp.contains(e.target) && !mb.contains(e.target)) {
+      mp.classList.remove('open');
+    }
+    const wp = document.getElementById('weekSearchPanel');
+    const wb2 = document.getElementById('weekSearchBtn');
+    if (wp && wp.classList.contains('open') && !wp.contains(e.target) && !wb2.contains(e.target)) {
+      wp.classList.remove('open');
+    }
+  });
+
+  // 6. Check Supabase session (handles OAuth redirect + password recovery)
+  const { data: { session } } = await _supa.auth.getSession();
+  if (session?.user) {
+    // Check if this is a password recovery session
+    if (session.user.aud === 'authenticated' && window.location.hash.includes('type=recovery')) {
+      _showPasswordResetUI();
+    } else {
+      await _onSignedIn(session.user);
+    }
+  } else {
+    document.getElementById('loginPage').style.display = 'flex';
+  }
+
+  // Listen for auth state changes (OAuth redirect, sign out)
+  _supa.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user && !currentUser) {
+      await _onSignedIn(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('loginPage').style.display = 'flex';
+    }
+  });
+});
+</script>
+</body>
+</html>
