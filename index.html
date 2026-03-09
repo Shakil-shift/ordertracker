@@ -731,7 +731,7 @@ span.flatpickr-weekday{color:var(--t3)!important;}
   <div class="stats-bar">
     <div class="stat stat-btn" id="btnTotal" title="Show all orders" onclick="toggleStatFilter('total')"><div class="stat-top-bar"></div><div class="stat-val" id="sTotal">0</div><div class="stat-label">Total Orders</div></div>
     <div class="stat stat-btn" id="btnTests" title="Filter by total tests" onclick="toggleStatFilter('tests')"><div class="stat-top-bar"></div><div class="stat-val" id="sTests">0</div><div class="stat-label">Total Tests</div></div>
-    <div class="stat stat-btn stat-danger" id="btnPending" title="Filter by result pending" onclick="toggleStatFilter('pending')"><div class="stat-top-bar"></div><div class="stat-val" id="sPending" style="color:var(--red)">0</div><div class="stat-label">Result Pending</div></div>
+    <div class="stat stat-btn stat-danger" id="btnPending" title="Filter: sent but no report yet" onclick="toggleStatFilter('pending')"><div class="stat-top-bar"></div><div class="stat-val" id="sPending" style="color:var(--red)">0</div><div class="stat-label">Result Pending</div></div>
     <div class="stat stat-btn stat-success" id="btnPass" title="Filter by passed" onclick="toggleStatFilter('pass')"><div class="stat-top-bar"></div><div class="stat-val" id="sPass">0</div><div class="stat-label">Passed</div></div>
     <div class="stat stat-btn stat-danger" id="btnFail" title="Filter by failed" onclick="toggleStatFilter('fail')"><div class="stat-top-bar"></div><div class="stat-val" id="sFail" style="color:var(--red)">0</div><div class="stat-label">Failed</div></div>
     <div class="stat stat-warn stat-btn" id="btnSendPending" title="Filter by sending pending" onclick="toggleStatFilter('send')">
@@ -897,8 +897,19 @@ span.flatpickr-weekday{color:var(--t3)!important;}
         <div class="modal-title" id="alertsModalTitle">All Alerts</div>
         <div class="modal-subtitle" id="alertsModalSub"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" onclick="exportAlertsExcel()">Export Excel</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;display:flex;align-items:center;gap:5px;" onclick="exportAlertsExcel()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel
+        </button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;display:flex;align-items:center;gap:5px;" onclick="printAlerts(false)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;display:flex;align-items:center;gap:5px;" onclick="printAlerts(true)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PDF
+        </button>
         <button class="modal-close" onclick="closeAlertsModal()">✕</button>
       </div>
     </div>
@@ -956,37 +967,44 @@ async function doEmailAuth() {
   const btn = document.getElementById('authSubmitBtn');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
-    // If input has no @, treat as username — look up the email via admin API
-    // We store username in user_metadata.display_name, but we can't query users
-    // from the client without service role. So we use a fallback:
-    // Try signing in directly (works if they typed email), or show helpful error.
     let email = identifier;
     if (!identifier.includes('@')) {
-      // Attempt to resolve username → email via a stored mapping in localStorage
+      // Step 1: check localStorage cache (same device)
       const usernameMap = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
       if (usernameMap[identifier.toLowerCase()]) {
         email = usernameMap[identifier.toLowerCase()];
       } else {
-        _showAuthMsg('Username not found. Please sign in with your email address instead.', 'error');
-        btn.disabled = false; btn.textContent = 'Sign In';
-        return;
+        // Step 2: look up in Supabase profiles table (cross-device)
+        try {
+          const { data: profile, error: pErr } = await _supa
+            .from('profiles')
+            .select('email')
+            .eq('username', identifier.toLowerCase())
+            .maybeSingle();
+          if (!pErr && profile?.email) {
+            email = profile.email;
+            // cache it locally
+            const map = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
+            map[identifier.toLowerCase()] = profile.email;
+            localStorage.setItem('ot_username_map', JSON.stringify(map));
+          } else {
+            _showAuthMsg('Username not found. Sign in with your email first, then set a display name in Account Settings.', 'error');
+            btn.disabled = false; btn.textContent = 'Sign In'; return;
+          }
+        } catch(_) {
+          _showAuthMsg('Username not found. Please sign in with your email address.', 'error');
+          btn.disabled = false; btn.textContent = 'Sign In'; return;
+        }
       }
     }
     const { data, error } = await _supa.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
-    // On successful login, store username→email mapping for future use
-    const displayName = data.user.user_metadata?.display_name;
-    if (displayName) {
-      const map = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
-      map[displayName.toLowerCase()] = data.user.email;
-      localStorage.setItem('ot_username_map', JSON.stringify(map));
-    }
     await _onSignedIn(data.user);
   } catch(e) {
     let msg = e.message || 'Sign in failed.';
-    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) msg = 'Connection error. Check your internet and try again.';
-    if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) msg = 'Invalid email/username or password.';
-    if (msg.includes('Email not confirmed')) msg = 'Please confirm your email first, then try again.';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) msg = 'Connection error. Check your internet and try again.';
+    if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) msg = 'Incorrect email/username or password.';
+    if (msg.includes('Email not confirmed')) msg = 'Please confirm your email first.';
     _showAuthMsg(msg, 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'Sign In';
@@ -1003,16 +1021,17 @@ async function doForgotPassword() {
 
 async function _onSignedIn(user) {
   const displayName = user.user_metadata?.display_name || user.email.split('@')[0];
-  currentUser = {
-    id: user.id,
-    username: displayName,
-    email: user.email,
-    role: 'user'
-  };
-  // Keep username→email map updated
+  currentUser = { id: user.id, username: displayName, email: user.email, role: 'user' };
+  // Cache locally
   const map = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
   map[displayName.toLowerCase()] = user.email;
   localStorage.setItem('ot_username_map', JSON.stringify(map));
+  // Upsert into profiles table (silently — non-blocking)
+  _supa.from('profiles').upsert({
+    id: user.id, username: displayName.toLowerCase(),
+    display_name: displayName, email: user.email,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'id' }).then(({ error }) => { if (error) console.warn('Profile sync:', error.message); });
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
   await initApp();
@@ -1327,7 +1346,7 @@ function renderStats() {
     o.tests.forEach(t => {
       if (t.isCSTest) return;
       tests++;
-      if (t.result === 'Pending') pending++;
+      if (!t.isCSTest && t.sentDate && !t.reportDate) pending++;
       if (t.result === 'Pass') pass++;
       if (t.result === 'Fail') fail++;
       if (t.tod && !t.sentDate) sendPending++;
@@ -1641,7 +1660,8 @@ function renderTable() {
       if (!o.tests.some(t => !t.isCSTest && t.sentDate && !t.reportDate)) return false;
     }
     if (activeStatFilter === 'pending') {
-      if (!o.tests.some(t => !t.result || t.result === 'Pending')) return false;
+      // Result Pending = sent garment but report not yet received
+      if (!o.tests.some(t => !t.isCSTest && t.sentDate && !t.reportDate)) return false;
     }
     if (activeStatFilter === 'pass') {
       if (!o.tests.some(t => t.result === 'Pass')) return false;
@@ -1729,7 +1749,7 @@ function buildOrderRow(o, search) {
     let hlCls = '';
     if (activeStatFilter === 'send'    && t.tod && !t.sentDate)              hlCls = ' stat-hl';
     if (activeStatFilter === 'report'  && t.sentDate && !t.reportDate)       hlCls = ' stat-hl';
-    if (activeStatFilter === 'pending' && (!t.result || t.result==='Pending')) hlCls = ' stat-hl';
+    if (activeStatFilter === 'pending' && t.sentDate && !t.reportDate) hlCls = ' stat-hl';
     if (activeStatFilter === 'pass'    && t.result === 'Pass')                hlCls = ' stat-hl';
     if (activeStatFilter === 'fail'    && t.result === 'Fail')                hlCls = ' stat-hl';
     let name = t.name;
@@ -2690,16 +2710,19 @@ function renderNotifPanel() {
         if (todayD < notifyFrom) return; // too early — not yet in notification window
         refD = shipD;
       } else {
-        // standard: use TOD
+        // Standard tests: trigger when TOD is within lead days from today
         refD = dateFromStr(t.tod);
+        const notifyFrom = new Date(refD);
+        notifyFrom.setDate(notifyFrom.getDate() - lead);
+        if (todayD < notifyFrom) return; // not yet in notification window
       }
 
-      const diff = Math.round((refD - todayD) / 86400000); // days until ref date
+      const diff = Math.round((refD - todayD) / 86400000);
       const item = { order: o, test: t, diff, refD };
-      if (diff < 0) sendOverdue.push(item);
-      else if (diff === 0) sendToday.push(item);
-      else if (refD >= weekStart && refD <= weekEnd) sendThisWeek.push(item);
-      else sendUpcoming.push(item);
+      if (diff < 0)      sendOverdue.push(item);   // overdue
+      else if (diff === 0) sendToday.push(item);   // due today
+      else if (diff <= 7)  sendThisWeek.push(item);// within 7 days
+      else                 sendUpcoming.push(item); // 8+ days (within lead window)
     });
   });
 
@@ -2995,6 +3018,52 @@ function closeAlertsModal() {
   document.getElementById('alertsOverlay').classList.remove('open');
 }
 
+function printAlerts(asPdf) {
+  if (!_alertsData.length) { showToast('No data to print', 'info'); return; }
+  const isSend = _alertsType === 'send';
+  const title = isSend ? 'Sending Pending — All Alerts' : 'Report Pending — All Alerts';
+  const today = new Date().toLocaleDateString();
+  let thead, rows = '';
+  if (isSend) {
+    thead = '<tr><th>Status</th><th>Order #</th><th>Dept</th><th>Style</th><th>Test Name</th><th>TOD</th><th>Week</th><th>Ship Date</th><th>Days</th></tr>';
+    _alertsData.forEach(r => {
+      const statusColor = r.diff < 0 ? '#fb7185' : r.diff === 0 ? '#fbbf24' : '#2dd4bf';
+      const statusLabel = r.diff < 0 ? `${Math.abs(r.diff)}d overdue` : r.diff === 0 ? 'Today' : `${r.diff}d away`;
+      rows += `<tr>
+        <td style="color:${statusColor};font-weight:700">${statusLabel}</td>
+        <td>${r.orderNum}</td><td>${r.dept||'—'}</td><td>${r.style||'—'}</td>
+        <td>${r.testName}</td><td>${r.tod}</td><td>${r.week}</td><td>${r.shipDate||'—'}</td>
+        <td>${r.diff}</td></tr>`;
+    });
+  } else {
+    thead = '<tr><th>Status</th><th>Order #</th><th>Dept</th><th>Style</th><th>Test Name</th><th>Sent Date</th><th>Ship Date</th><th>Days Since Sent</th></tr>';
+    _alertsData.forEach(r => {
+      rows += `<tr>
+        <td style="color:#38bdf8;font-weight:700">Awaiting Report</td>
+        <td>${r.orderNum}</td><td>${r.dept||'—'}</td><td>${r.style||'—'}</td>
+        <td>${r.testName}</td><td>${r.sentDate||'—'}</td><td>${r.shipDate||'—'}</td>
+        <td>${r.daysSinceSent||'—'}</td></tr>`;
+    });
+  }
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;padding:16px;color:#111;}
+    h2{font-size:15px;font-weight:700;margin-bottom:4px;}
+    .meta{font-size:11px;color:#555;margin-bottom:14px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#1c2330;color:#e6edf3;padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;}
+    td{padding:6px 8px;border-bottom:1px solid #e0e0e0;}
+    tr:nth-child(even) td{background:#f8f9fa;}
+    @media print{@page{size:A4 landscape;margin:12mm;}}
+  </style></head><body>
+  <h2>${title}</h2>
+  <div class="meta">Exported: ${today} · ${_alertsData.length} items</div>
+  <table><thead>${thead}</thead><tbody>${rows}</tbody></table>
+  </body></html>`;
+  _openPrintWindow(html, asPdf);
+}
+
 function exportAlertsExcel() {
   if (!_alertsData.length) { showToast('No data to export', 'error'); return; }
   const ws = XLSX.utils.json_to_sheet(_alertsData);
@@ -3073,10 +3142,25 @@ async function saveChangeUsername() {
   if (newName === currentUser.username) { showToast('Same as current name', 'error'); return; }
   showLoading();
   try {
-    const { data, error } = await _supa.auth.updateUser({
-      data: { display_name: newName }
-    });
-    if (error) throw error;
+    // 1. Update Supabase Auth metadata
+    const { error: authErr } = await _supa.auth.updateUser({ data: { display_name: newName } });
+    if (authErr) throw authErr;
+    // 2. Upsert into profiles table so username works cross-device
+    const { error: profileErr } = await _supa.from('profiles').upsert({
+      id: currentUser.id,
+      username: newName.toLowerCase(),
+      display_name: newName,
+      email: currentUser.email,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+    if (profileErr) console.warn('Profile upsert:', profileErr.message);
+    // 3. Update local cache
+    const map = JSON.parse(localStorage.getItem('ot_username_map') || '{}');
+    // remove old username key
+    Object.keys(map).forEach(k => { if (map[k] === currentUser.email) delete map[k]; });
+    map[newName.toLowerCase()] = currentUser.email;
+    localStorage.setItem('ot_username_map', JSON.stringify(map));
+    // 4. Update UI
     currentUser.username = newName;
     document.getElementById('userBadge').textContent = newName;
     document.getElementById('cp_cur_user').value = newName;
@@ -3212,18 +3296,16 @@ function closeStyleAC() {
 // ===========================
 // PRINT / PDF / EXCEL
 // ===========================
-function _openPrintWindow(htmlContent) {
-  let iframe = document.getElementById('__printFrame');
-  if (!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.id = '__printFrame';
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-    document.body.appendChild(iframe);
-  }
-  const doc = iframe.contentDocument || iframe.contentWindow.document;
-  doc.open(); doc.write(htmlContent); doc.close();
-  iframe.contentWindow.focus();
-  setTimeout(() => { iframe.contentWindow.print(); }, 400);
+function _openPrintWindow(htmlContent, asPdf) {
+  // For PDF: inject a @page rule telling browser to save as PDF in landscape
+  const pdfCss = asPdf ? '<style>@media print{@page{size:A4 landscape;margin:10mm;}}</style>' : '';
+  const finalHtml = htmlContent.replace('</head>', pdfCss + '</head>');
+  // Open in new window so user can Print → Save as PDF
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { showToast('Pop-up blocked — allow pop-ups and try again', 'error'); return; }
+  w.document.open(); w.document.write(finalHtml); w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 500);
 }
 
 function printCSS() {
